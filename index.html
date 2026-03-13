@@ -1,0 +1,1758 @@
+<!DOCTYPE html>
+<html lang="da">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Strategy Execution Observatory™ — Admin Control Tower v7.0</title>
+<!--
+╔══════════════════════════════════════════════════════════════╗
+║  STRATEGY EXECUTION OBSERVATORY™                             ║
+║  Admin Control Tower v7.0                                    ║
+╠══════════════════════════════════════════════════════════════╣
+║  MODULE: Admin (aggregation + calculation + publishing)      ║
+║  SCHEMA: 7.0                                                 ║
+║                                                               ║
+║  v7.0 (2026-03-13) — Observatory™ Control Tower              ║
+║  • SCHEMA 7.0; LS keys v70; v6.0→v6.2 migration preserved   ║
+║  • Strategy Execution Observatory™ repositioning             ║
+║  • 3 indices: SSI + OFI (new) + EMI (new)                   ║
+║  • OFI = Organizational Friction Index (from friction_load,  ║
+║    decision_escalation, leader_overload, behaviour_risk)     ║
+║  • EMI = Execution Momentum Index (from closure_rate,        ║
+║    milestone_hit, decision_speed, team_confidence)           ║
+║  • Execution Thermodynamics interpretation layer             ║
+║  • Governance Actions 2.0 with urgency grouping              ║
+║  • CEO print with SSI+OFI+EMI                               ║
+║  • Observatory Summary export                                ║
+║  • Category statement & method transparency                  ║
+║  • WCAG AA+ readability upgrade (17px body, 1.6 lh)         ║
+║  • 8-section navigation hierarchy                            ║
+║  • Preserved: hash chain, config fingerprint, evidence pack, ║
+║    sensitivity, pressure ranking, WHY sentences, coverage,   ║
+║    backward compatibility, null-safe migration, audit trail  ║
+║                                                               ║
+║  v6.2 (2026-02-28) — Governance enforcement + exec insights ║
+║  • Decision escalation rate + leader overload detection      ║
+║  • Behaviour risk score + confidence keyword aggregation     ║
+║  • CEO 1-page print export + Strategy Office positioning     ║
+║                                                               ║
+║  v6.1 — CFO-completeness gates + audit compat               ║
+║  v6.0 — Tamper-evident audit trail, sensitivity analysis     ║
+║                                                               ║
+║  MIGRATION PIPELINE (migrateIndsendelse):                    ║
+║  v1.0/v3.0/v4.0/v5.0/v5.1/v6.0/v6.1/v6.2 → v7.0            ║
+║  All previous migration chains preserved.                    ║
+║                                                               ║
+║  SSI = sum(normalized[k] × weight[k]) / sum(weight[k])      ║
+║  OFI = composite of friction signals (0-100, high=low fric.) ║
+║  EMI = composite of momentum signals (0-100, high=strong)    ║
+║  Execution Health = Momentum minus Friction (interpretive)   ║
+║                                                               ║
+║  Admin = SOLE source of truth for KPI definitions,           ║
+║  normalization rules, SSI/OFI/EMI weights, strategy mapping  ║
+╚══════════════════════════════════════════════════════════════╝
+-->
+<style>
+:root {
+  --navy:#0B1624; --navy2:#0F1C30; --navy3:#15233D; --navy4:#1B2D4D; --navy5:#233659;
+  --gold:#CBA84F; --gold2:#D8B75E; --gold-dim:rgba(203,168,79,.10); --gold-mid:rgba(203,168,79,.22);
+  --blue:#2A5298; --blue-dim:rgba(42,82,152,.14); --blue-mid:rgba(42,82,152,.26);
+  --text:#F4F4F2; --text2:#C8CDD6; --text3:#8590A2;
+  --brd:rgba(255,255,255,.08); --brd2:rgba(255,255,255,.14);
+  --brd-gold:rgba(203,168,79,.35); --brd-blue:rgba(42,82,152,.4);
+  --rod:#C0392B; --rod-dim:rgba(192,57,43,.14);
+  --gron:#1a9a4a; --gron-dim:rgba(26,154,74,.14);
+  --orange:#d97706; --orange-dim:rgba(217,119,6,.14);
+  --font-d:'Cormorant Garamond',Georgia,serif;
+  --font-u:'DM Sans',system-ui,-apple-system,sans-serif;
+  --radius:10px;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{font-family:var(--font-u);background:var(--navy);color:var(--text);min-height:100vh;display:flex;flex-direction:column;font-size:17px;line-height:1.6}
+
+/* TOPBAR */
+.topbar{height:60px;background:var(--navy2);border-bottom:1px solid var(--brd);display:flex;align-items:center;justify-content:space-between;padding:0 0 0 22px;position:sticky;top:0;z-index:100;flex-shrink:0}
+.topbar-brand{display:flex;align-items:center;gap:16px}
+.logo-mark{font-family:var(--font-d);font-size:20px;color:var(--gold);letter-spacing:.04em}
+.brand-sub{font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.13em}
+.role-chip{font-size:10px;font-family:'Courier New',monospace;text-transform:uppercase;letter-spacing:.1em;padding:4px 20px;border-left:1px solid var(--brd);color:var(--gold);height:100%;display:flex;align-items:center}
+
+/* LAYOUT */
+.app-body{display:flex;flex:1;overflow:hidden;height:calc(100vh - 60px)}
+
+/* SIDEBAR */
+.sidebar{width:248px;flex-shrink:0;background:var(--navy2);border-right:1px solid var(--brd);display:flex;flex-direction:column;overflow:hidden}
+.sidebar-inner{flex:1;overflow-y:auto;padding:8px 0}
+.nav-gruppe{padding:6px 0;border-bottom:1px solid var(--brd)}
+.nav-lbl{padding:0 18px 6px;font-size:9.5px;color:var(--text3);text-transform:uppercase;letter-spacing:.15em;margin-top:10px;display:block;font-weight:600}
+.nav-btn{width:100%;text-align:left;padding:10px 18px;background:transparent;border:none;border-left:3px solid transparent;cursor:pointer;transition:all .15s;display:flex;align-items:center;gap:9px}
+.nav-btn:hover{background:var(--navy3)}
+.nav-btn.akt{background:var(--navy3);border-left-color:var(--gold)}
+.nav-btn.akt-blue{background:var(--blue-dim);border-left-color:var(--blue)}
+.nb-navn{font-size:13px;color:var(--text2)}
+.nav-btn.akt .nb-navn,.nav-btn.akt-blue .nb-navn{color:var(--text)}
+.nb-sub{font-size:10px;color:var(--text3);margin-top:1px;display:block}
+.nb-badge{margin-left:auto;font-size:10px;font-family:'Courier New',monospace;background:var(--navy4);border:1px solid var(--brd2);color:var(--text3);padding:1px 7px;border-radius:10px}
+.nav-btn.akt .nb-badge{background:var(--gold-dim);border-color:var(--brd-gold);color:var(--gold)}
+.sidebar-footer{padding:16px 18px;border-top:1px solid var(--brd)}
+.sf-stat{font-size:10.5px;color:var(--text3);line-height:1.9}
+.sf-stat strong{color:var(--gold2)}
+
+/* MAIN CONTENT */
+.main-content{flex:1;overflow-y:auto}
+.page{display:none;padding:32px 36px 64px;max-width:1120px}
+.page.akt{display:block}
+.page-hoved{border-bottom:1px solid var(--brd);padding-bottom:18px;margin-bottom:28px;display:flex;justify-content:space-between;align-items:flex-end}
+.ph-label{font-size:10px;text-transform:uppercase;letter-spacing:.14em;color:var(--gold);margin-bottom:4px;font-weight:600}
+.ph-titel{font-family:var(--font-d);font-size:30px;color:var(--text);letter-spacing:.02em}
+.ph-meta{font-size:11px;color:var(--text3);font-family:'Courier New',monospace;text-align:right}
+
+/* MANUAL PANEL */
+.manual-panel{background:var(--navy2);border:1px solid var(--brd);border-radius:var(--radius);margin-bottom:24px;overflow:hidden}
+.manual-toggle{width:100%;padding:16px 22px;display:flex;justify-content:space-between;align-items:center;background:none;border:none;color:var(--text2);cursor:pointer;font-family:var(--font-u);text-align:left;transition:background .15s}
+.manual-toggle:hover{background:var(--navy3)}
+.mt-left{display:flex;flex-direction:column}
+.mt-label{font-size:9.5px;text-transform:uppercase;letter-spacing:.12em;color:var(--gold);margin-bottom:3px;font-weight:600}
+.mt-title{font-size:14px;color:var(--text)}
+.mt-arrow{font-size:11px;color:var(--text3);transition:transform .2s}
+.manual-toggle.open .mt-arrow{transform:rotate(180deg)}
+.manual-body{display:none;padding:0 22px 22px;border-top:1px solid var(--brd)}
+.manual-body.open{display:block}
+.manual-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-top:18px}
+.manual-step{background:var(--navy3);border:1px solid var(--brd);border-radius:8px;padding:16px 18px}
+.ms-num{font-family:var(--font-d);font-size:28px;color:var(--gold);line-height:1;margin-bottom:6px}
+.ms-title{font-size:11px;font-weight:700;color:var(--text);margin-bottom:5px;text-transform:uppercase;letter-spacing:.04em}
+.ms-desc{font-size:12px;color:var(--text3);line-height:1.7}
+.freq-box{margin-top:16px;background:var(--gold-dim);border:1px solid var(--brd-gold);border-radius:8px;padding:16px 18px;font-size:13px;color:var(--text2);line-height:1.85}
+.freq-box strong{color:var(--gold2)}
+
+/* STATS + KPI */
+.stats-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:28px}
+.stat-kort{background:var(--navy2);border:1px solid var(--brd);border-radius:var(--radius);padding:20px 22px;position:relative;overflow:hidden}
+.stat-kort::before{content:'';position:absolute;top:0;left:0;right:0;height:3px}
+.stat-kort.gold::before{background:var(--gold)}.stat-kort.groen::before{background:#4ade80}
+.stat-kort.rod::before{background:#f87171}.stat-kort.orange::before{background:#fb923c}
+.stat-n{font-family:var(--font-d);font-size:40px;color:var(--gold);font-weight:700;line-height:1}
+.stat-l{font-size:11px;color:var(--text3);margin-top:5px;text-transform:uppercase;letter-spacing:.06em;font-weight:600}
+.kpi-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:28px}
+.kpi-kort{background:var(--navy2);border:1px solid var(--brd);border-radius:var(--radius);padding:18px 20px;position:relative;overflow:hidden}
+.kpi-kort .rag-bar{position:absolute;left:0;top:0;bottom:0;width:3px}
+.rag-gron{background:#4ade80}.rag-orange{background:#fb923c}.rag-rod{background:#f87171}.rag-graa{background:var(--text3)}
+.kpi-etiket{font-size:10px;text-transform:uppercase;letter-spacing:.09em;color:var(--text3);margin-bottom:7px;font-weight:600}
+.kpi-val{font-family:var(--font-d);font-size:32px;font-weight:700;line-height:1}
+.kv-gron{color:#4ade80}.kv-orange{color:#fb923c}.kv-rod{color:#f87171}.kv-graa{color:var(--text3)}
+.kpi-enhed{font-size:10.5px;color:var(--text3);margin-top:4px}
+
+/* INDEX HERO CARDS (SSI / OFI / EMI) */
+.hero-trifecta{display:grid;grid-template-columns:1fr 1fr 1fr;gap:18px;margin-bottom:28px}
+.index-hero{background:linear-gradient(135deg,var(--navy2),var(--navy3));border:2px solid var(--brd);border-radius:14px;padding:26px 28px;position:relative;overflow:hidden}
+.index-hero::before{content:'';position:absolute;top:0;left:0;right:0;height:4px}
+.index-hero.hero-ssi{border-color:var(--brd-gold)}.index-hero.hero-ssi::before{background:linear-gradient(90deg,var(--gold),var(--gold2),var(--gold))}
+.index-hero.hero-ofi{border-color:rgba(251,146,60,.35)}.index-hero.hero-ofi::before{background:linear-gradient(90deg,#fb923c,#f59e0b,#fb923c)}
+.index-hero.hero-emi{border-color:rgba(74,222,128,.3)}.index-hero.hero-emi::before{background:linear-gradient(90deg,#4ade80,#22d3ee,#4ade80)}
+.ih-top{display:flex;align-items:center;gap:18px;margin-bottom:14px}
+.ih-ring{width:80px;height:80px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;position:relative}
+.ih-ring svg{position:absolute;top:0;left:0;width:100%;height:100%;transform:rotate(-90deg)}
+.ih-ring-bg{fill:none;stroke:var(--navy4);stroke-width:5}
+.ih-ring-val{fill:none;stroke-width:5;stroke-linecap:round;transition:stroke-dashoffset .8s ease}
+.ih-score{font-family:var(--font-d);font-size:28px;font-weight:700;line-height:1;z-index:1}
+.ih-label{font-size:8px;text-transform:uppercase;letter-spacing:.12em;color:var(--text3);text-align:center;margin-top:1px;z-index:1}
+.ih-info{flex:1}
+.ih-title{font-family:var(--font-d);font-size:19px;color:var(--text);margin-bottom:3px}
+.ih-subtitle{font-size:12px;color:var(--text3);margin-bottom:10px;line-height:1.5}
+.ih-drivers{display:flex;flex-direction:column;gap:5px}
+.ih-driver{display:flex;align-items:center;gap:7px;font-size:11px;color:var(--text2)}
+.ih-driver-bar{flex:1;height:4px;background:var(--navy4);border-radius:2px;overflow:hidden}
+.ih-driver-fill{height:100%;border-radius:2px;transition:width .5s ease}
+.ih-state{margin-top:12px;padding:10px 14px;border-radius:8px;font-size:13px;line-height:1.6;border:1px solid var(--brd)}
+
+/* LEGACY SSI HERO (for KPI page) */
+.ssi-hero{background:linear-gradient(135deg,var(--navy2),var(--navy3));border:2px solid var(--brd-gold);border-radius:14px;padding:28px 32px;margin-bottom:28px;display:flex;align-items:center;gap:32px;position:relative;overflow:hidden}
+.ssi-hero::before{content:'';position:absolute;top:0;left:0;right:0;height:4px;background:linear-gradient(90deg,var(--gold),var(--gold2),var(--gold))}
+.ssi-ring{width:120px;height:120px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;position:relative}
+.ssi-ring svg{position:absolute;top:0;left:0;width:100%;height:100%;transform:rotate(-90deg)}
+.ssi-ring-bg{fill:none;stroke:var(--navy4);stroke-width:6}
+.ssi-ring-val{fill:none;stroke-width:6;stroke-linecap:round;transition:stroke-dashoffset .8s ease}
+.ssi-num{font-family:var(--font-d);font-size:44px;font-weight:700;line-height:1;z-index:1}
+.ssi-lbl{font-size:9px;text-transform:uppercase;letter-spacing:.12em;color:var(--text3);text-align:center;margin-top:2px;z-index:1}
+.ssi-details{flex:1}
+.ssi-title{font-family:var(--font-d);font-size:24px;color:var(--text);margin-bottom:4px}
+.ssi-subtitle{font-size:12px;color:var(--text3);margin-bottom:16px;line-height:1.5}
+.ssi-drivers{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.ssi-driver{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--text2)}
+.ssi-driver-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.ssi-driver-bar{flex:1;height:4px;background:var(--navy4);border-radius:2px;overflow:hidden}
+.ssi-driver-fill{height:100%;border-radius:2px;transition:width .5s ease}
+
+/* SEKTION */
+.sektion{background:var(--navy2);border:1px solid var(--brd);border-radius:var(--radius);margin-bottom:22px;overflow:hidden}
+.sek-hoved{padding:14px 22px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--brd)}
+.sh-label{font-size:9.5px;text-transform:uppercase;letter-spacing:.12em;color:var(--gold);font-weight:600}
+.sh-titel{font-size:15px;font-weight:600;color:var(--text);margin-top:2px}
+.sek-body{padding:22px}
+
+/* LOG TABEL */
+.log-tabel{width:100%;border-collapse:collapse;font-size:13px}
+.log-tabel th{background:var(--navy3);border-bottom:1px solid var(--brd2);border-right:1px solid var(--brd);padding:10px 12px;text-align:left;font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:var(--text3);font-weight:700;white-space:nowrap}
+.log-tabel td{border-bottom:1px solid var(--brd);border-right:1px solid var(--brd);padding:9px 12px;color:var(--text2);vertical-align:top}
+.log-tabel tr:last-child td{border-bottom:none}
+.log-tabel tr:hover td{background:var(--navy3)}
+.tom-tilstand{text-align:center;padding:28px;color:var(--text3);font-size:13px;font-style:italic}
+
+/* SPARRING */
+.sparring-item{border:1px solid var(--brd);border-radius:8px;margin-bottom:12px;overflow:hidden}
+.sparring-hoved{padding:13px 18px;display:flex;align-items:center;gap:10px}
+.sparring-hoved.kritisk{background:var(--rod-dim);border-bottom:1px solid rgba(192,57,43,.2)}
+.sparring-hoved.advarsel{background:var(--orange-dim);border-bottom:1px solid rgba(217,119,6,.2)}
+.sparring-hoved.info{background:var(--navy3);border-bottom:1px solid var(--brd)}
+.sp-badge{font-size:9px;font-family:'Courier New',monospace;text-transform:uppercase;letter-spacing:.1em;padding:3px 9px;border-radius:3px;white-space:nowrap}
+.sp-kritisk{background:var(--rod-dim);color:#f87171;border:1px solid rgba(192,57,43,.3)}
+.sp-advarsel{background:var(--orange-dim);color:#fb923c;border:1px solid rgba(217,119,6,.3)}
+.sp-info{background:var(--navy4);color:var(--text3);border:1px solid var(--brd2)}
+.sp-tekst{font-size:13px;color:var(--text)}
+.sp-kilde{font-size:10.5px;color:var(--text3);font-family:'Courier New',monospace;margin-left:auto;white-space:nowrap}
+.sparring-body{padding:13px 18px;background:var(--navy2)}
+.sp-sp{font-size:13px;color:var(--text3);line-height:1.7}
+.sp-sp em{color:var(--gold2);font-style:italic}
+
+/* STATUS BADGES */
+.s-badge{display:inline-block;font-size:9.5px;text-transform:uppercase;letter-spacing:.08em;padding:3px 8px;border-radius:3px;font-family:'Courier New',monospace}
+.s-afventer{background:rgba(180,130,0,.2);color:#d4a900}
+.s-besluttet{background:var(--gron-dim);color:#4ade80}
+.s-eskaleret{background:var(--rod-dim);color:#f87171}
+.s-aben,.s-åben{background:rgba(180,130,0,.2);color:#d4a900}
+.s-lukket{background:var(--gron-dim);color:#4ade80}
+.s-i-gang{background:var(--orange-dim);color:#fb923c}
+.s-accepteret{background:var(--navy4);color:var(--text3)}
+.rag-prik{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:5px}
+.rg{background:#4ade80}.ro{background:#fb923c}.rr{background:#f87171}
+
+/* GOVERNANCE ACTIONS 2.0 */
+.gov-action-group{margin-bottom:20px}
+.gov-action-label{font-size:10px;text-transform:uppercase;letter-spacing:.12em;font-weight:700;padding:8px 0;display:flex;align-items:center;gap:8px}
+.gov-action-label.kritisk-nu{color:#f87171}.gov-action-label.kraever-beslutning{color:#fb923c}
+.gov-action-label.kraever-afklaring{color:var(--gold2)}.gov-action-label.kan-overvaages{color:var(--text3)}
+.gov-action-item{padding:12px 16px;border-left:3px solid var(--brd);border-radius:0 8px 8px 0;margin-bottom:8px;background:var(--navy3);font-size:13px;line-height:1.6;color:var(--text2)}
+.gov-action-item.red{border-left-color:#f87171}.gov-action-item.orange{border-left-color:#fb923c}
+.gov-action-item.gold{border-left-color:var(--gold)}.gov-action-item.grey{border-left-color:var(--text3)}
+
+/* EXECUTION THERMODYNAMICS */
+.thermo-panel{background:linear-gradient(135deg,var(--navy2),var(--navy3));border:2px solid var(--brd);border-radius:14px;padding:28px 32px;margin-bottom:28px;position:relative;overflow:hidden}
+.thermo-panel::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:linear-gradient(90deg,#f87171,#fb923c,var(--gold),#4ade80)}
+.thermo-equation{font-family:var(--font-d);font-size:26px;text-align:center;color:var(--text);margin:16px 0;letter-spacing:.02em}
+.thermo-signals{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:18px}
+.thermo-signal{padding:14px 18px;border-radius:8px;border:1px solid var(--brd);font-size:13px;line-height:1.7;color:var(--text2)}
+.thermo-signal.warn{border-left:3px solid #fb923c;background:rgba(217,119,6,.06)}
+.thermo-signal.danger{border-left:3px solid #f87171;background:rgba(192,57,43,.06)}
+.thermo-signal.ok{border-left:3px solid #4ade80;background:rgba(26,154,74,.06)}
+
+/* KNAPPER */
+.btn{display:inline-flex;align-items:center;gap:7px;padding:10px 20px;border-radius:7px;font-family:var(--font-u);font-size:13px;font-weight:600;cursor:pointer;transition:all .15s;border:none;white-space:nowrap}
+.btn-gold{background:var(--gold);color:var(--navy)}.btn-gold:hover{background:var(--gold2)}
+.btn-ghost{background:transparent;border:1px solid var(--brd2);color:var(--text2)}.btn-ghost:hover{background:var(--navy3);border-color:var(--brd-gold);color:var(--text)}
+.btn-danger{background:transparent;border:1px solid rgba(192,57,43,.4);color:#f87171}.btn-danger:hover{background:var(--rod-dim)}
+.btn-sm{padding:6px 12px;font-size:11.5px}
+.btn-gruppe{display:flex;gap:9px;flex-wrap:wrap;margin-top:18px}
+
+/* IMPORT */
+.import-zone{border:2px dashed var(--brd2);border-radius:var(--radius);padding:36px 26px;text-align:center;cursor:pointer;transition:all .2s}
+.import-zone:hover,.import-zone.drag{border-color:var(--gold);background:var(--gold-dim)}
+.iz-icon{font-size:2.5rem;margin-bottom:12px}.iz-titel{font-size:14px;color:var(--text);margin-bottom:5px}.iz-sub{font-size:12px;color:var(--text3)}
+.filer-liste{margin-top:18px}
+.fil-item{display:flex;align-items:center;gap:10px;padding:10px 14px;background:var(--navy3);border:1px solid var(--brd);border-radius:7px;margin-bottom:7px}
+.fi-navn{font-family:'Courier New',monospace;font-size:11.5px;color:var(--text2);flex:1}
+.fi-meta{font-size:10.5px;color:var(--text3)}
+
+/* SNAP PILL */
+.snap-pill{display:inline-block;padding:5px 14px;border:1px solid var(--brd2);border-radius:20px;font-size:11.5px;font-family:'Courier New',monospace;cursor:pointer;margin:3px;transition:all .15s;color:var(--text3)}
+.snap-pill:hover{border-color:var(--gold);color:var(--gold)}
+.snap-pill.akt{background:var(--gold);color:var(--navy);border-color:var(--gold)}
+
+/* TAERSKLER + WEIGHTS */
+.taerskel-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:14px}
+.taerskel-item{background:var(--navy3);border:1px solid var(--brd);border-radius:8px;padding:16px 18px}
+.ti-label{font-size:10.5px;text-transform:uppercase;letter-spacing:.08em;color:var(--text3);margin-bottom:9px;font-weight:600}
+.ti-inputs{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.ti-inputs label{font-size:10.5px;color:var(--text3);text-transform:none;letter-spacing:0}
+.ti-inputs input{max-width:70px;padding:6px 9px;background:var(--navy4);border:1px solid var(--brd2);border-radius:5px;color:var(--text);font-size:13px;outline:none}
+.ti-inputs input:focus{border-color:var(--gold)}
+.weight-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}
+.weight-item{display:flex;align-items:center;gap:9px;padding:9px 14px;background:var(--navy3);border:1px solid var(--brd);border-radius:7px}
+.weight-item label{font-size:12px;color:var(--text2);flex:1;text-transform:none;letter-spacing:0}
+.weight-item input{max-width:58px;padding:5px 7px;background:var(--navy4);border:1px solid var(--brd2);border-radius:5px;color:var(--text);font-size:13px;text-align:center;outline:none}
+.weight-item input:focus{border-color:var(--gold)}
+.weight-sum{font-size:12px;font-family:'Courier New',monospace;color:var(--text3);margin-top:9px;text-align:right}
+
+/* FORMS */
+.krypt-boks{background:var(--navy3);border:1px solid var(--brd2);border-radius:8px;padding:16px 18px;margin-bottom:16px}
+.krypt-boks label{display:flex;align-items:center;gap:9px;text-transform:none;letter-spacing:0;font-size:14px;color:var(--text2);cursor:pointer;margin-bottom:0}
+.krypt-boks input[type=checkbox]{width:auto;accent-color:var(--gold)}
+.meta-linje{font-size:10.5px;color:var(--text3);font-family:'Courier New',monospace;padding-top:12px;border-top:1px solid var(--brd);margin-top:14px}
+.form-felt{margin-bottom:16px}
+label,.f-label{display:block;font-size:10.5px;text-transform:uppercase;letter-spacing:.1em;color:var(--text3);margin-bottom:7px;font-weight:600}
+input[type=text],input[type=date],input[type=number],input[type=password],select,textarea{width:100%;padding:10px 14px;background:var(--navy3);border:1px solid var(--brd2);border-radius:7px;color:var(--text);font-family:var(--font-u);font-size:14px;outline:none;transition:border-color .15s;-webkit-appearance:none}
+input:focus,select:focus,textarea:focus{border-color:var(--gold);background:var(--navy4)}
+select option{background:var(--navy3)}
+textarea{resize:vertical;min-height:76px}
+
+/* NOTIF */
+.notif{position:fixed;top:72px;right:22px;padding:14px 20px;border-radius:8px;font-size:14px;z-index:1000;display:none;max-width:380px;border-left:3px solid}
+.notif.vis{display:block}
+.notif-ok{background:var(--navy3);border-color:var(--gold);color:var(--text2)}
+.notif-fejl{background:var(--rod-dim);border-color:var(--rod);color:#fca5a5}
+.notif-info{background:var(--navy3);border-color:var(--brd2);color:var(--text2)}
+
+/* MAANEDS-STANDARD */
+.standard-boks{background:var(--gold-dim);border:1px solid var(--brd-gold);border-radius:8px;padding:16px 18px;margin-bottom:16px}
+.sb-label{font-size:10px;text-transform:uppercase;letter-spacing:.12em;color:var(--gold);margin-bottom:7px;font-weight:600}
+
+/* PULSE */
+.pulse-hoved{background:var(--navy2);border:1px solid var(--brd);border-top:3px solid var(--gold);border-radius:var(--radius);padding:22px 26px;margin-bottom:22px;display:flex;justify-content:space-between;align-items:center}
+.pulse-timer-n{font-family:var(--font-d);font-size:42px;color:var(--gold);line-height:1}
+.pulse-timer-lbl{font-size:9.5px;text-transform:uppercase;letter-spacing:.1em;color:var(--text3);text-align:right}
+.pulse-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;margin-bottom:18px}
+.pulse-sek{background:var(--navy2);border:1px solid var(--brd);border-radius:var(--radius);overflow:hidden}
+.pulse-sek-hoved{padding:13px 18px;background:var(--navy3);border-bottom:1px solid var(--brd);display:flex;align-items:center;gap:10px}
+.pulse-nr{font-family:var(--font-d);font-size:22px;color:var(--gold);line-height:1}
+.pulse-sek-titel{font-size:10.5px;text-transform:uppercase;letter-spacing:.1em;color:var(--gold);font-weight:600}
+.pulse-sek-body{padding:16px 18px}
+.pulse-item{padding:11px 0;border-bottom:1px solid var(--brd);font-size:13px;color:var(--text2);line-height:1.6}
+.pulse-item:last-child{border-bottom:none}
+.pi-meta{font-size:10.5px;color:var(--text3);margin-top:4px;font-family:'Courier New',monospace}
+.pulse-tom{font-size:12px;color:var(--text3);font-style:italic;padding:12px 0}
+
+/* ROLLEFORDELING */
+.rolle-banner{background:var(--navy3);border:1px solid var(--brd2);border-top:3px solid var(--gold);border-radius:var(--radius);padding:24px 28px;margin-bottom:26px}
+.rb-citat{font-family:var(--font-d);font-size:20px;color:var(--text);line-height:1.65;margin-bottom:12px;font-style:italic}
+.rb-kilde{font-size:10px;text-transform:uppercase;letter-spacing:.12em;color:var(--gold);font-weight:600}
+.rolle-split{display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-bottom:26px}
+.rolle-kort{border-radius:var(--radius);overflow:hidden;border:1px solid var(--brd)}
+.rk-hoved{padding:18px 22px;display:flex;align-items:center;gap:14px}
+.rk-intern .rk-hoved{background:var(--blue-dim);border-bottom:1px solid var(--brd-blue)}
+.rk-ekstern .rk-hoved{background:var(--gold-dim);border-bottom:1px solid var(--brd-gold)}
+.rk-ikon{font-size:24px;width:40px;height:40px;border-radius:8px;display:flex;align-items:center;justify-content:center}
+.rk-intern .rk-ikon{background:var(--blue-mid)}.rk-ekstern .rk-ikon{background:var(--gold-mid)}
+.rk-titel{font-family:var(--font-d);font-size:19px;color:var(--text)}
+.rk-sub{font-size:10.5px;text-transform:uppercase;letter-spacing:.1em}
+.rk-intern .rk-sub{color:#7aabf0}.rk-ekstern .rk-sub{color:var(--gold)}
+.rk-body{background:var(--navy2);padding:20px 22px}
+.rk-sektion{margin-bottom:18px}.rk-sektion:last-child{margin-bottom:0}
+.rk-sek-lbl{font-size:9.5px;text-transform:uppercase;letter-spacing:.12em;margin-bottom:10px;font-weight:700}
+.rk-intern .rk-sek-lbl{color:#7aabf0}.rk-ekstern .rk-sek-lbl{color:var(--gold)}
+.rk-liste{list-style:none}
+.rk-liste li{font-size:13px;color:var(--text2);padding:6px 0;border-bottom:1px solid var(--brd);display:flex;align-items:flex-start;gap:9px;line-height:1.6}
+.rk-liste li:last-child{border-bottom:none}
+.rk-liste li::before{content:"\2192";font-size:12px;flex-shrink:0;margin-top:2px}
+.rk-intern .rk-liste li::before{color:#7aabf0}.rk-ekstern .rk-liste li::before{color:var(--gold)}
+
+/* EXPLAIN SSI PANEL */
+.explain-panel{background:var(--navy3);border:1px solid var(--brd);border-radius:var(--radius);padding:22px;margin-bottom:22px}
+.explain-row{display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid var(--brd);font-size:13px}
+.explain-row:last-child{border-bottom:none}
+.explain-bar-wrap{flex:1;height:6px;background:var(--navy4);border-radius:3px;overflow:hidden}
+.explain-bar{height:100%;border-radius:3px}
+
+/* CATEGORY STATEMENT */
+.category-panel{background:var(--navy2);border:1px solid var(--brd);border-left:4px solid var(--gold);border-radius:0 var(--radius) var(--radius) 0;padding:24px 28px;margin-bottom:28px}
+.category-panel h3{font-family:var(--font-d);font-size:22px;color:var(--text);margin-bottom:12px}
+.category-panel p{font-size:14px;color:var(--text2);line-height:1.7;margin-bottom:10px}
+.category-panel .cat-list{font-size:13px;color:var(--text3);line-height:1.8;margin-top:8px}
+
+@media print{.topbar,.sidebar,.manual-panel,.btn-gruppe,button{display:none !important}.page{display:block !important;padding:0 !important}.hero-trifecta{grid-template-columns:1fr 1fr 1fr}}
+@media (max-width:900px){.kpi-grid,.stats-grid,.rolle-split,.pulse-grid,.weight-grid,.hero-trifecta,.ssi-drivers,.taerskel-grid,.thermo-signals{grid-template-columns:1fr}.sidebar{display:none}.ssi-hero{flex-direction:column;text-align:center}}
+</style>
+</head>
+<body>
+<div class="notif" id="notif"></div>
+
+<header class="topbar">
+  <div class="topbar-brand">
+    <div><div class="logo-mark">Strategy Execution Observatory&#x2122;</div><div class="brand-sub">Admin Control Tower</div></div>
+  </div>
+  <div class="role-chip">Observatory v7.0 &#xb7; Schema 7.0</div>
+</header>
+
+<div class="app-body">
+<nav class="sidebar">
+  <div class="sidebar-inner">
+    <div class="nav-gruppe">
+      <span class="nav-lbl">Observatory</span>
+      <button class="nav-btn akt" onclick="skiftSide('observatory')" id="nav-observatory">
+        <div><div class="nb-navn">&#x1F30D; Overblik</div><span class="nb-sub">SSI &#xb7; OFI &#xb7; EMI</span></div>
+      </button>
+    </div>
+    <div class="nav-gruppe">
+      <span class="nav-lbl">Indsamling</span>
+      <button class="nav-btn" onclick="skiftSide('import')" id="nav-import">
+        <div><div class="nb-navn">&#x2B06; Import</div><span class="nb-sub">Leverandorfiler</span></div>
+        <span class="nb-badge" id="badge-import">0</span>
+      </button>
+    </div>
+    <div class="nav-gruppe">
+      <span class="nav-lbl">Indeks</span>
+      <button class="nav-btn" onclick="skiftSide('kpi')" id="nav-kpi">
+        <div><div class="nb-navn">&#x1F4D0; Execution Health</div><span class="nb-sub">SSI + KPI</span></div>
+      </button>
+      <button class="nav-btn" onclick="skiftSide('friction')" id="nav-friction">
+        <div><div class="nb-navn">&#x26D4; Friction Observatory</div><span class="nb-sub">OFI</span></div>
+      </button>
+      <button class="nav-btn" onclick="skiftSide('momentum')" id="nav-momentum">
+        <div><div class="nb-navn">&#x26A1; Momentum Observatory</div><span class="nb-sub">EMI</span></div>
+      </button>
+    </div>
+    <div class="nav-gruppe">
+      <span class="nav-lbl">Governance</span>
+      <button class="nav-btn" onclick="skiftSide('governance')" id="nav-governance">
+        <div><div class="nb-navn">&#x1F3AF; Handlinger</div><span class="nb-sub">Actions &#xb7; Risici</span></div>
+        <span class="nb-badge" id="badge-governance">0</span>
+      </button>
+      <button class="nav-btn" onclick="skiftSide('overblik')" id="nav-overblik">
+        <div><div class="nb-navn">&#x1F4CA; Masteroversigt</div><span class="nb-sub">Alle poster</span></div>
+      </button>
+      <button class="nav-btn" onclick="skiftSide('sparring')" id="nav-sparring">
+        <div><div class="nb-navn">&#x2714; Kvalitetssikring</div><span class="nb-sub">AI Sparring</span></div>
+        <span class="nb-badge" id="badge-sparring">0</span>
+      </button>
+    </div>
+    <div class="nav-gruppe">
+      <span class="nav-lbl">Publicering</span>
+      <button class="nav-btn" onclick="skiftSide('pulse')" id="nav-pulse">
+        <div><div class="nb-navn">&#x25CB; Closure Pulse</div><span class="nb-sub">15 min &#xb7; Ugentlig</span></div>
+      </button>
+      <button class="nav-btn" onclick="skiftSide('rapport')" id="nav-rapport">
+        <div><div class="nb-navn">&#x1F4CB; 1-pager</div><span class="nb-sub">SSI + drivers + anbef.</span></div>
+      </button>
+      <button class="nav-btn" onclick="skiftSide('snapshots')" id="nav-snapshots">
+        <div><div class="nb-navn">&#x1F4F8; Snapshots</div><span class="nb-sub">Versionsarkiv</span></div>
+        <span class="nb-badge" id="badge-snapshots">0</span>
+      </button>
+      <button class="nav-btn" onclick="skiftSide('eksport')" id="nav-eksport">
+        <div><div class="nb-navn">&#x2B07; Eksport</div><span class="nb-sub">Bundle &#xb7; CEO &#xb7; Evidence</span></div>
+      </button>
+    </div>
+    <div class="nav-gruppe">
+      <span class="nav-lbl">System</span>
+      <button class="nav-btn" onclick="skiftSide('config')" id="nav-config">
+        <div><div class="nb-navn">&#x2699; Metode &amp; Config</div><span class="nb-sub">Vaegting &#xb7; Taerskler &#xb7; Om</span></div>
+      </button>
+      <button class="nav-btn" onclick="skiftSide('roller')" id="nav-roller">
+        <div><div class="nb-navn">&#x2295; Positionering</div><span class="nb-sub">Strategy Office</span></div>
+      </button>
+    </div>
+  </div>
+  <div class="sidebar-footer">
+    <div class="sf-stat"><strong id="sf-ind">0</strong> indsendere<br><strong id="sf-post">0</strong> poster<br><strong id="sf-snap">0</strong> snapshots</div>
+  </div>
+</nav>
+
+<main class="main-content">
+
+<!-- ========================================================
+     SIDE: OBSERVATORY OVERVIEW (NYT — kontroltårn)
+     ======================================================== -->
+<div class="page akt" id="side-observatory">
+  <div class="page-hoved">
+    <div><div class="ph-label">Strategy Execution Observatory&#x2122;</div><div class="ph-titel">Kontroltårn</div></div>
+    <button class="btn btn-gold" onclick="beregnKPIer()">&#x21BB; Beregn alle indeks</button>
+  </div>
+
+  <!-- HERO TRIFECTA: SSI + OFI + EMI -->
+  <div class="hero-trifecta" id="hero-trifecta">
+    <div class="index-hero hero-ssi" id="obs-ssi-hero">
+      <div class="ih-top">
+        <div class="ih-ring"><svg viewBox="0 0 80 80"><circle class="ih-ring-bg" cx="40" cy="40" r="34"/><circle class="ih-ring-val" id="obs-ssi-arc" cx="40" cy="40" r="34" stroke-dasharray="213.6" stroke-dashoffset="213.6"/></svg><div style="display:flex;flex-direction:column;align-items:center"><div class="ih-score" id="obs-ssi-val">&#x2014;</div><div class="ih-label">SSI</div></div></div>
+        <div class="ih-info"><div class="ih-title">Strategy Execution Index</div><div class="ih-subtitle" id="obs-ssi-sub">Samlet strategisk sundhed (0-100)</div></div>
+      </div>
+      <div class="ih-drivers" id="obs-ssi-drivers"></div>
+      <div class="ih-state" id="obs-ssi-state" style="display:none"></div>
+    </div>
+    <div class="index-hero hero-ofi" id="obs-ofi-hero">
+      <div class="ih-top">
+        <div class="ih-ring"><svg viewBox="0 0 80 80"><circle class="ih-ring-bg" cx="40" cy="40" r="34"/><circle class="ih-ring-val" id="obs-ofi-arc" cx="40" cy="40" r="34" stroke-dasharray="213.6" stroke-dashoffset="213.6"/></svg><div style="display:flex;flex-direction:column;align-items:center"><div class="ih-score" id="obs-ofi-val">&#x2014;</div><div class="ih-label">OFI</div></div></div>
+        <div class="ih-info"><div class="ih-title">Organizational Friction</div><div class="ih-subtitle" id="obs-ofi-sub">Intern organisatorisk modstand (0-100)</div></div>
+      </div>
+      <div class="ih-drivers" id="obs-ofi-drivers"></div>
+      <div class="ih-state" id="obs-ofi-state" style="display:none"></div>
+    </div>
+    <div class="index-hero hero-emi" id="obs-emi-hero">
+      <div class="ih-top">
+        <div class="ih-ring"><svg viewBox="0 0 80 80"><circle class="ih-ring-bg" cx="40" cy="40" r="34"/><circle class="ih-ring-val" id="obs-emi-arc" cx="40" cy="40" r="34" stroke-dasharray="213.6" stroke-dashoffset="213.6"/></svg><div style="display:flex;flex-direction:column;align-items:center"><div class="ih-score" id="obs-emi-val">&#x2014;</div><div class="ih-label">EMI</div></div></div>
+        <div class="ih-info"><div class="ih-title">Execution Momentum</div><div class="ih-subtitle" id="obs-emi-sub">Fremdrift i strategisk eksekvering (0-100)</div></div>
+      </div>
+      <div class="ih-drivers" id="obs-emi-drivers"></div>
+      <div class="ih-state" id="obs-emi-state" style="display:none"></div>
+    </div>
+  </div>
+
+  <!-- EXECUTION THERMODYNAMICS -->
+  <div class="thermo-panel" id="thermo-panel" style="display:none">
+    <div style="font-size:10px;text-transform:uppercase;letter-spacing:.14em;color:var(--gold);font-weight:700;margin-bottom:8px">Execution Thermodynamics</div>
+    <div class="thermo-equation">Execution Health = <span style="color:#4ade80">Momentum</span> &#x2212; <span style="color:#fb923c">Friktion</span></div>
+    <div id="thermo-interpretation" style="text-align:center;font-size:15px;color:var(--text);margin:12px 0;line-height:1.6"></div>
+    <div class="thermo-signals" id="thermo-signals"></div>
+  </div>
+
+  <!-- OBSERVATORY STATS -->
+  <div class="stats-grid">
+    <div class="stat-kort gold"><div class="stat-n" id="obs-st-ind">0</div><div class="stat-l">Indsendere</div></div>
+    <div class="stat-kort groen"><div class="stat-n" id="obs-st-b">0</div><div class="stat-l">Beslutninger</div></div>
+    <div class="stat-kort orange"><div class="stat-n" id="obs-st-f">0</div><div class="stat-l">Friktioner</div></div>
+    <div class="stat-kort rod"><div class="stat-n" id="obs-st-r">0</div><div class="stat-l">Risici</div></div>
+  </div>
+
+  <!-- CRITICAL GOVERNANCE ALERTS (top signals) -->
+  <div class="sektion" id="obs-gov-alerts">
+    <div class="sek-hoved"><div><div class="sh-label">Governance Alerts</div><div class="sh-titel">Kritiske signaler</div></div></div>
+    <div class="sek-body" id="obs-gov-body"><div class="tom-tilstand">Beregn alle indeks for at se alerts</div></div>
+  </div>
+</div>
+
+<!-- ========================================================
+     SIDE: IMPORT
+     ======================================================== -->
+<div class="page" id="side-import">
+  <div class="page-hoved">
+    <div><div class="ph-label">Indsamling</div><div class="ph-titel">Import af leverandorfiler</div></div>
+    <div class="ph-meta" id="import-meta">Ingen filer importeret</div>
+  </div>
+  <div class="manual-panel">
+    <button class="manual-toggle" id="mt-import" onclick="skiftManual('import')">
+      <div class="mt-left"><div class="mt-label">Workflow-guide</div><div class="mt-title">Administratorens importproces &#x2014; v7.0 med automatisk schema-migration</div></div>
+      <span class="mt-arrow">&#x25BC;</span>
+    </button>
+    <div class="manual-body" id="mb-import">
+      <div class="manual-grid">
+        <div class="manual-step"><div class="ms-num">01</div><div class="ms-title">Modtag filer</div><div class="ms-desc">Leverandorer sender JSON via aftalt kanal. v1.0&#x2013;v7.0 filer importeres alle &#x2014; migration sker automatisk.</div></div>
+        <div class="manual-step"><div class="ms-num">02</div><div class="ms-title">Krypteret?</div><div class="ms-desc">Aktiver krypteringsfeltet og angiv adgangskoden. Systemet dekrypterer automatisk.</div></div>
+        <div class="manual-step"><div class="ms-num">03</div><div class="ms-title">Import + migration</div><div class="ms-desc">Filer migreres automatisk til v7.0 schema. Null-safe: manglende vaerdier forbliver null (aldrig fabriceret).</div></div>
+        <div class="manual-step"><div class="ms-num">04</div><div class="ms-title">Valider</div><div class="ms-desc">Er alle forventede indsendere her? Mangler filer &#x2014; kontakt leverandoren inden analyse.</div></div>
+        <div class="manual-step"><div class="ms-num">05</div><div class="ms-title">Beregn indeks</div><div class="ms-desc">Beregn SSI, OFI og EMI. 8 KPI-komponenter normaliseret. Tre indeks beregnet. Alt null-safe.</div></div>
+        <div class="manual-step"><div class="ms-num">06</div><div class="ms-title">Publieer</div><div class="ms-desc">1-pager med SSI + OFI + EMI + drivers + governance actions &#x2192; Snapshot &#x2192; Bundle til Management.</div></div>
+      </div>
+      <div class="freq-box">
+        <strong>Schema v7.0 &#x2014; Strategy Execution Observatory&#x2122;:</strong> Tre indeks: SSI (strategisk sundhed), OFI (organisatorisk friktion), EMI (eksekveringsmomentum). Alle importerede filer migreres automatisk fra v1.0&#x2013;v6.2. Null-safe: manglende data forbliver null.
+      </div>
+    </div>
+  </div>
+  <div class="sektion">
+    <div class="sek-hoved"><div><div class="sh-label">Upload</div><div class="sh-titel">Importer leverandorfiler</div></div></div>
+    <div class="sek-body">
+      <div class="krypt-boks">
+        <label><input type="checkbox" id="imp-krypt" onchange="skiftImpKrypt()"> Filer er krypteret &#x2014; angiv adgangskode</label>
+        <div id="imp-kode-felt" style="display:none;margin-top:10px"><input type="password" id="imp-adgangskode" placeholder="Faelles adgangskode" style="max-width:300px"></div>
+      </div>
+      <div class="import-zone" id="import-zone" onclick="document.getElementById('imp-fil').click()"
+        ondragover="event.preventDefault();gi('import-zone').classList.add('drag')"
+        ondragleave="gi('import-zone').classList.remove('drag')"
+        ondrop="dropHandler(event)">
+        <div class="iz-icon">&#x1F4C2;</div>
+        <div class="iz-titel">Klik eller traek JSON-filer hertil</div>
+        <div class="iz-sub">Accepterer v1.0&#x2013;v7.0 leverandorfiler &#x2014; automatisk migration</div>
+      </div>
+      <input type="file" id="imp-fil" accept=".json" multiple style="display:none" onchange="importFiler(event)">
+      <div class="filer-liste" id="filer-liste"><div class="tom-tilstand">Ingen filer importeret endnu</div></div>
+      <div class="btn-gruppe">
+        <button class="btn btn-ghost" onclick="indlaesTestdata()">&#x1F52C; Indlaes testdata (3 indsendere)</button>
+        <button class="btn btn-ghost" onclick="indlaesTestdata3mdr()">&#x1F4CA; 3 mdr. testdata</button>
+        <button class="btn btn-ghost" onclick="performanceTest()">&#x26A1; Perf test (300)</button>
+        <button class="btn btn-danger" onclick="rydAlt()">&#x26A0; Ryd alt</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ========================================================
+     SIDE: KPI + SSI (Execution Health)
+     ======================================================== -->
+<div class="page" id="side-kpi">
+  <div class="page-hoved">
+    <div><div class="ph-label">Execution Health</div><div class="ph-titel">KPI-dashboard + Strategy Execution Index</div></div>
+    <button class="btn btn-gold" onclick="beregnKPIer()">&#x21BB; Beregn KPI'er + SSI</button>
+  </div>
+  <div class="ssi-hero" id="ssi-hero" style="display:none">
+    <div class="ssi-ring"><svg viewBox="0 0 120 120"><circle class="ssi-ring-bg" cx="60" cy="60" r="52"/><circle class="ssi-ring-val" id="ssi-ring-arc" cx="60" cy="60" r="52" stroke-dasharray="326.7" stroke-dashoffset="326.7"/></svg><div style="display:flex;flex-direction:column;align-items:center"><div class="ssi-num" id="ssi-val">&#x2014;</div><div class="ssi-lbl">SSI</div></div></div>
+    <div class="ssi-details">
+      <div class="ssi-title">Strategy Execution Index</div>
+      <div class="ssi-subtitle" id="ssi-subtitle">Vaegtet sum af 8 execution KPI-komponenter (0-100). Kun non-null medregnes.</div>
+      <div class="ssi-drivers" id="ssi-drivers"></div>
+    </div>
+  </div>
+  <div class="kpi-grid" id="kpi-grid"><div class="tom-tilstand" style="grid-column:1/-1;padding:44px">Klik &#x201C;Beregn KPI'er + SSI&#x201D; for at beregne</div></div>
+  <div class="sektion" id="explain-ssi-section" style="display:none">
+    <div class="sek-hoved"><div><div class="sh-label">Explain SSI</div><div class="sh-titel">Komponentopdeling + drivers + sensitivity + coverage</div></div></div>
+    <div class="sek-body">
+      <div id="explain-ssi-body"></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:18px">
+        <div class="sektion" style="margin-bottom:0"><div class="sek-hoved"><div><div class="sh-label" style="color:#4ade80">&#x2191;</div><div class="sh-titel">Top 3 positive drivers (by contribution)</div></div></div><div class="sek-body"><div id="top3-pos"></div></div></div>
+        <div class="sektion" style="margin-bottom:0"><div class="sek-hoved"><div><div class="sh-label" style="color:#f87171">&#x2193;</div><div class="sh-titel">Top 3 negative drivers (by pressure)</div></div></div><div class="sek-body"><div id="top3-neg"></div></div></div>
+      </div>
+    </div>
+  </div>
+  <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;margin-bottom:28px">
+    <div class="sektion"><div class="sek-hoved"><div><div class="sh-label">Fokus</div><div class="sh-titel">Top 3 &#x2014; Beslutninger</div></div></div><div class="sek-body"><ul id="top3-b" style="list-style:none"><li class="tom-tilstand">Klik Beregn</li></ul></div></div>
+    <div class="sektion"><div class="sek-hoved"><div><div class="sh-label">Fokus</div><div class="sh-titel">Top 3 &#x2014; Friktioner</div></div></div><div class="sek-body"><ul id="top3-f" style="list-style:none"><li class="tom-tilstand">Klik Beregn</li></ul></div></div>
+    <div class="sektion"><div class="sek-hoved"><div><div class="sh-label">Fokus</div><div class="sh-titel">Top 3 &#x2014; Risici</div></div></div><div class="sek-body"><ul id="top3-r" style="list-style:none"><li class="tom-tilstand">Klik Beregn</li></ul></div></div>
+  </div>
+</div>
+
+<!-- ========================================================
+     SIDE: FRICTION OBSERVATORY (OFI)
+     ======================================================== -->
+<div class="page" id="side-friction">
+  <div class="page-hoved">
+    <div><div class="ph-label">Friction Observatory</div><div class="ph-titel">Organizational Friction Index (OFI)</div></div>
+    <button class="btn btn-gold" onclick="beregnKPIer()">&#x21BB; Beregn OFI</button>
+  </div>
+  <div class="sektion" id="ofi-hero-section" style="display:none">
+    <div class="sek-body" id="ofi-detail-body"><div class="tom-tilstand">Beregn alle indeks for at se OFI</div></div>
+  </div>
+  <div class="sektion">
+    <div class="sek-hoved"><div><div class="sh-label">Metode</div><div class="sh-titel">Hvad OFI maler</div></div></div>
+    <div class="sek-body">
+      <p style="font-size:14px;color:var(--text2);line-height:1.7;margin-bottom:12px">OFI (Organizational Friction Index) maler intern organisatorisk modstand, beslutningsfriktion og koordinationsfriktion. Hoj score = lav friktion. Lav score = hoj friktion.</p>
+      <p style="font-size:13px;color:var(--text3);line-height:1.7"><strong style="color:var(--text2)">Komponenter:</strong> Friction Load (normaliseret), Decision Escalation Rate, Leader Overload Detection, Behaviour Risk Score. Alle eksisterende signaler &#x2014; intet fabriceret.</p>
+    </div>
+  </div>
+  <div class="sektion">
+    <div class="sek-hoved"><div><div class="sh-label">Governance</div><div class="sh-titel">Governance Insights &#x2014; Friktion</div></div></div>
+    <div class="sek-body" id="gov-insights"><div style="padding:12px;color:var(--text3);font-size:13px;">Beregn indeks forst</div></div>
+  </div>
+</div>
+
+<!-- ========================================================
+     SIDE: MOMENTUM OBSERVATORY (EMI)
+     ======================================================== -->
+<div class="page" id="side-momentum">
+  <div class="page-hoved">
+    <div><div class="ph-label">Momentum Observatory</div><div class="ph-titel">Execution Momentum Index (EMI)</div></div>
+    <button class="btn btn-gold" onclick="beregnKPIer()">&#x21BB; Beregn EMI</button>
+  </div>
+  <div class="sektion" id="emi-hero-section" style="display:none">
+    <div class="sek-body" id="emi-detail-body"><div class="tom-tilstand">Beregn alle indeks for at se EMI</div></div>
+  </div>
+  <div class="sektion">
+    <div class="sek-hoved"><div><div class="sh-label">Metode</div><div class="sh-titel">Hvad EMI maler</div></div></div>
+    <div class="sek-body">
+      <p style="font-size:14px;color:var(--text2);line-height:1.7;margin-bottom:12px">EMI (Execution Momentum Index) maler organisationens evne til at skabe og fastholde fremdrift i strategiske initiativer. Hoj score = staerk fremdrift. Lav score = tab af momentum.</p>
+      <p style="font-size:13px;color:var(--text3);line-height:1.7"><strong style="color:var(--text2)">Komponenter:</strong> Closure Rate, Milestone Hit Rate, Decision Speed (normaliseret), Team Confidence. Alle eksisterende signaler &#x2014; intet fabriceret.</p>
+    </div>
+  </div>
+</div>
+
+<!-- ========================================================
+     SIDE: GOVERNANCE ACTIONS 2.0
+     ======================================================== -->
+<div class="page" id="side-governance">
+  <div class="page-hoved">
+    <div><div class="ph-label">Governance Actions 2.0</div><div class="ph-titel">Ledelsesmaessige handlinger nu</div></div>
+    <button class="btn btn-gold" onclick="beregnKPIer()">&#x21BB; Opdater</button>
+  </div>
+  <div id="gov-actions-body"><div class="tom-tilstand" style="padding:44px">Beregn alle indeks for at generere handlinger</div></div>
+</div>
+
+<!-- ========================================================
+     SIDE: OVERBLIK (Masteroversigt)
+     ======================================================== -->
+<div class="page" id="side-overblik">
+  <div class="page-hoved">
+    <div><div class="ph-label">Analyse</div><div class="ph-titel">Masteroversigt</div></div>
+    <div class="ph-meta" id="overblik-meta">&#x2014;</div>
+  </div>
+  <div class="stats-grid">
+    <div class="stat-kort gold"><div class="stat-n" id="st-ind">0</div><div class="stat-l">Indsendere</div></div>
+    <div class="stat-kort groen"><div class="stat-n" id="st-b">0</div><div class="stat-l">Beslutninger</div></div>
+    <div class="stat-kort orange"><div class="stat-n" id="st-f">0</div><div class="stat-l">Friktioner</div></div>
+    <div class="stat-kort rod"><div class="stat-n" id="st-r">0</div><div class="stat-l">Risici</div></div>
+  </div>
+  <div class="sektion">
+    <div class="sek-hoved"><div><div class="sh-label">Log</div><div class="sh-titel">Beslutninger</div></div>
+      <select id="filter-b" style="padding:6px 12px;background:var(--navy3);border:1px solid var(--brd2);color:var(--text2);border-radius:5px;font-size:12px" onchange="gengiverMaster()"><option value="">Alle</option><option>Afventer</option><option>Besluttet</option><option>Eskaleret</option></select>
+    </div>
+    <div class="sek-body" style="overflow-x:auto"><table class="log-tabel"><thead><tr><th>ID</th><th>Indsender</th><th>Rejst</th><th>Ansvarlig</th><th>Frist</th><th>DoD</th><th>Status</th><th>Impact</th><th>Init.</th></tr></thead><tbody id="m-b"><tr><td colspan="9" class="tom-tilstand">Importer filer for at se data</td></tr></tbody></table></div>
+  </div>
+  <div class="sektion">
+    <div class="sek-hoved"><div><div class="sh-label">Log</div><div class="sh-titel">Friktioner</div></div></div>
+    <div class="sek-body" style="overflow-x:auto"><table class="log-tabel"><thead><tr><th>ID</th><th>Indsender</th><th>Logget</th><th>Omraade A</th><th>Omraade B</th><th>Problem</th><th>Ansvarlig</th><th>Status</th><th>Impact</th></tr></thead><tbody id="m-f"><tr><td colspan="9" class="tom-tilstand">Ingen data</td></tr></tbody></table></div>
+  </div>
+  <div class="sektion">
+    <div class="sek-hoved"><div><div class="sh-label">Log</div><div class="sh-titel">Risici</div></div></div>
+    <div class="sek-body" style="overflow-x:auto"><table class="log-tabel"><thead><tr><th>ID</th><th>Indsender</th><th>Logget</th><th>Beskrivelse</th><th>Ansvarlig</th><th>S</th><th>P</th><th>SxP</th><th>Status</th></tr></thead><tbody id="m-r"><tr><td colspan="9" class="tom-tilstand">Ingen data</td></tr></tbody></table></div>
+  </div>
+</div>
+
+<!-- ========================================================
+     SIDE: AI SPARRING
+     ======================================================== -->
+<div class="page" id="side-sparring">
+  <div class="page-hoved">
+    <div><div class="ph-label">Kvalitetssikring</div><div class="ph-titel">AI Sparring &#x2014; Datakvalitet</div></div>
+    <button class="btn btn-gold" onclick="korSparring()">&#x26A1; Kor analyse</button>
+  </div>
+  <div class="sektion" id="sparring-resume" style="display:none">
+    <div class="sek-hoved"><div><div class="sh-label">Resume</div><div class="sh-titel">Analyse-resultat</div></div></div>
+    <div class="sek-body"><div style="display:flex;gap:22px;flex-wrap:wrap">
+      <div><span class="sp-badge sp-kritisk" style="font-size:13px;padding:5px 14px" id="sp-kr">0</span> <span style="font-size:13px;color:var(--text3)">Kritiske</span></div>
+      <div><span class="sp-badge sp-advarsel" style="font-size:13px;padding:5px 14px" id="sp-av">0</span> <span style="font-size:13px;color:var(--text3)">Advarsler</span></div>
+      <div><span class="sp-badge sp-info" style="font-size:13px;padding:5px 14px" id="sp-in">0</span> <span style="font-size:13px;color:var(--text3)">Info</span></div>
+      <div><span class="sp-badge" style="font-size:13px;padding:5px 14px;background:var(--gron-dim);color:#4ade80;border:1px solid rgba(26,154,74,.3)" id="sp-ok">0</span> <span style="font-size:13px;color:var(--text3)">OK</span></div>
+    </div></div>
+  </div>
+  <div id="sparring-liste"><div class="tom-tilstand" style="padding:44px">Klik &#x201C;Kor analyse&#x201D; for at validere datakvaliteten</div></div>
+</div>
+
+<!-- ========================================================
+     SIDE: CLOSURE PULSE
+     ======================================================== -->
+<div class="page" id="side-pulse">
+  <div class="page-hoved">
+    <div><div class="ph-label">Ugentlig closure-format</div><div class="ph-titel">Closure Pulse</div></div>
+    <div style="display:flex;gap:10px"><button class="btn btn-ghost btn-sm" onclick="window.print()">&#x1F5A8; Print</button><button class="btn btn-gold" onclick="genererPulse()">&#x21BB; Generer Pulse</button></div>
+  </div>
+  <div id="pulse-ingen" style="text-align:center;padding:64px 32px;color:var(--text3)">
+    <div style="font-size:2.5rem;margin-bottom:16px">&#x25CB;</div>
+    <div style="font-family:var(--font-d);font-size:22px;color:var(--text2);margin-bottom:8px">Ingen data &#x2014; importer og klik Generer Pulse</div>
+  </div>
+  <div id="pulse-output" style="display:none">
+    <div class="pulse-hoved">
+      <div><div style="font-family:var(--font-d);font-size:24px;color:var(--text);margin-bottom:5px">Ugentlig Closure Pulse</div><div style="font-size:12px;color:var(--text3)" id="pulse-dato">&#x2014;</div></div>
+      <div style="text-align:right"><div class="pulse-timer-n">15</div><div class="pulse-timer-lbl">min &#xb7; Direktion<br>Closure &#xb7; Ikke status</div></div>
+    </div>
+    <div class="pulse-grid">
+      <div class="pulse-sek"><div class="pulse-sek-hoved"><span class="pulse-nr">01</span><span class="pulse-sek-titel">3 vigtigste pending decisions</span></div><div class="pulse-sek-body" id="pulse-b"></div></div>
+      <div class="pulse-sek"><div class="pulse-sek-hoved"><span class="pulse-nr">02</span><span class="pulse-sek-titel">Aeldste abne friktion</span></div><div class="pulse-sek-body" id="pulse-f"></div></div>
+      <div class="pulse-sek"><div class="pulse-sek-hoved"><span class="pulse-nr">03</span><span class="pulse-sek-titel">Late surprise-kandidat</span></div><div class="pulse-sek-body" id="pulse-r"></div></div>
+    </div>
+    <div style="background:var(--navy2);border:1px solid var(--brd);border-radius:8px;padding:14px 20px;display:flex;justify-content:space-between;align-items:center;font-size:12px;color:var(--text3)">
+      <span>Naeste Pulse: <span id="pulse-naeste">&#x2014;</span></span>
+      <span style="font-family:'Courier New'">Observatory v7.0 &#xb7; Closure Pulse</span>
+      <span id="pulse-totals">&#x2014;</span>
+    </div>
+  </div>
+</div>
+
+<!-- ========================================================
+     SIDE: RAPPORT (1-pager)
+     ======================================================== -->
+<div class="page" id="side-rapport">
+  <div class="page-hoved">
+    <div><div class="ph-label">Publicering</div><div class="ph-titel">Maanedlig 1-pager &#x2014; SSI + OFI + EMI</div></div>
+    <div class="ph-meta">Observatory&#x2122; format v7.0</div>
+  </div>
+  <div style="display:grid;grid-template-columns:300px 1fr;gap:22px">
+    <div class="sektion">
+      <div class="sek-hoved"><div><div class="sh-label">Parametre</div><div class="sh-titel">Rapportindstillinger</div></div></div>
+      <div class="sek-body">
+        <div class="standard-boks"><div class="sb-label">&#x2605; Maaneds-standard (obligatorisk)</div><textarea id="rp-standard" rows="2" placeholder="fx Ingen beslutning uden DoD. Afventende over 7 dage eskaleres." style="min-height:60px;font-size:13px;background:rgba(12,24,41,.6);border-color:var(--brd-gold)"></textarea></div>
+        <div class="form-felt"><label>Periode</label><input type="text" id="rp-periode" placeholder="fx Marts 2026"></div>
+        <div class="form-felt"><label>Udgiver (rolle)</label><input type="text" id="rp-udgiver" placeholder="fx Execution Governance Partner"></div>
+        <div class="form-felt"><label>Fortrolighed</label><select id="rp-fortr"><option>Intern &#x2014; Fortrolig</option><option>Intern &#x2014; Begraenset</option><option>Offentlig</option></select></div>
+        <div class="form-felt"><label>Kontekst-note (valgfri)</label><textarea id="rp-komm" rows="2" placeholder="Saerlige forhold, kontekst..."></textarea></div>
+        <div class="btn-gruppe" style="flex-direction:column">
+          <button class="btn btn-gold" style="width:100%" onclick="genererRapport()">&#x21BB; Generer 1-pager</button>
+          <button class="btn btn-ghost" style="width:100%;margin-top:7px" onclick="publicerSnapshot()">&#x1F4F8; Publieer snapshot</button>
+        </div>
+      </div>
+    </div>
+    <div><div id="rapport-preview" style="background:#fff;border-radius:var(--radius);overflow:hidden;min-height:500px;display:flex;align-items:center;justify-content:center;color:#999;font-style:italic;font-size:14px">Rapporten vises her efter generering</div></div>
+  </div>
+</div>
+
+<!-- ========================================================
+     SIDE: SNAPSHOTS
+     ======================================================== -->
+<div class="page" id="side-snapshots">
+  <div class="page-hoved"><div><div class="ph-label">Arkiv</div><div class="ph-titel">Snapshot-arkiv</div></div><div class="ph-meta" id="snap-meta">0 snapshots</div></div>
+  <div class="sektion">
+    <div class="sek-hoved"><div><div class="sh-label">Versioner</div><div class="sh-titel">Publicerede snapshots (tamper-evident audit trail)</div></div></div>
+    <div class="sek-body">
+      <div id="snap-pills" style="margin-bottom:18px"><div class="tom-tilstand">Ingen snapshots endnu</div></div>
+      <div id="snap-vis" style="background:#fff;border-radius:8px;min-height:200px;overflow:hidden"><div class="tom-tilstand" style="padding:36px;color:#999">Vaelg et snapshot ovenfor</div></div>
+    </div>
+  </div>
+</div>
+
+<!-- ========================================================
+     SIDE: EKSPORT
+     ======================================================== -->
+<div class="page" id="side-eksport">
+  <div class="page-hoved"><div><div class="ph-label">Distribution</div><div class="ph-titel">Eksport til ledelse</div></div></div>
+  <div class="krypt-boks" style="margin-bottom:22px">
+    <label><input type="checkbox" id="eks-krypt" onchange="skiftEksKrypt()"> Krypter eksport (AES-GCM 256-bit)</label>
+    <div id="eks-kode-felt" style="display:none;margin-top:10px"><input type="password" id="eks-kode" placeholder="Adgangskode" style="max-width:300px"></div>
+  </div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:18px">
+    <div class="sektion"><div class="sek-hoved"><div><div class="sh-label">Primaer</div><div class="sh-titel">Report Bundle v7.0</div></div></div><div class="sek-body"><p style="font-size:13px;color:var(--text3);margin-bottom:18px;line-height:1.7">Snapshots + SSI/OFI/EMI + KPI-data + config + governance + tamper-evident hash chain til Management.html.</p><button class="btn btn-gold" style="width:100%" onclick="eksporterBundle()">&#x2B07; published_report_bundle.json</button></div></div>
+    <div class="sektion"><div class="sek-hoved"><div><div class="sh-label">CEO</div><div class="sh-titel">Observatory Summary (Print)</div></div></div><div class="sek-body"><p style="font-size:13px;color:var(--text3);margin-bottom:18px;line-height:1.7">Print-optimeret Observatory-overblik med SSI, OFI, EMI, top risks, beslutninger, governance actions og anbefalinger.</p><button class="btn btn-gold" style="width:100%" onclick="eksporterCEOPrint()">&#x1F5A8; Observatory Summary (Print)</button></div></div>
+    <div class="sektion"><div class="sek-hoved"><div><div class="sh-label">Backup</div><div class="sh-titel">Master JSON</div></div></div><div class="sek-body"><p style="font-size:13px;color:var(--text3);margin-bottom:18px;line-height:1.7">Alle radata + KPI'er + SSI/OFI/EMI + snapshots + config.</p><button class="btn btn-ghost" style="width:100%" onclick="eksporterMaster()">&#x2B07; consolidated_master.json</button></div></div>
+    <div class="sektion"><div class="sek-hoved"><div><div class="sh-label">Compliance</div><div class="sh-titel">Evidence Pack</div></div></div><div class="sek-body"><p style="font-size:13px;color:var(--text3);margin-bottom:18px;line-height:1.7">Audit-trail, SSI/OFI/EMI-beregninger, config og metadata.</p><button class="btn btn-ghost" style="width:100%" onclick="eksporterEvidence()">&#x2B07; evidence_pack.json</button></div></div>
+  </div>
+  <div class="meta-linje">Snapshots: <span id="eks-sn">0</span> &#xb7; Indsendelser: <span id="eks-in">0</span> &#xb7; Schema: v7.0 &#xb7; Sidst: <span id="eks-tid">&#x2014;</span></div>
+</div>
+
+<!-- ========================================================
+     SIDE: CONFIG & METHOD
+     ======================================================== -->
+<div class="page" id="side-config">
+  <div class="page-hoved">
+    <div><div class="ph-label">System</div><div class="ph-titel">Metode, Config &amp; Positionering</div></div>
+    <button class="btn btn-gold" onclick="gemOpsaetning()">Gem opsaetning</button>
+  </div>
+
+  <!-- CATEGORY STATEMENT -->
+  <div class="category-panel">
+    <h3>Strategy Execution Observatory&#x2122;</h3>
+    <p>Formalet er at gore execution-gaps synlige for de rammer performance. Systemet er et diagnostisk og governance-baseret ledelsessystem &#x2014; ikke et PMO-dashboard.</p>
+    <p><strong style="color:var(--text)">Systemet maler:</strong> Execution discipline, beslutningshastighed, organisatorisk friktion, strategisk momentum, kapacitetsrealisme, risikoudsaettelse, kompetenceparathed og team-tillid.</p>
+    <p><strong style="color:var(--text)">Systemet maler IKKE:</strong> Finansielle targets, markedsandel, omsaetning, kundetilfredshed eller KPI&#x2019;er der ejes af forretningen.</p>
+    <div class="cat-list">
+      &#x2022; SSI, OFI og EMI er <strong>ledelsessignaler</strong> &#x2014; ikke mal i sig selv.<br>
+      &#x2022; Systemet <strong>understotter &#x2014; ikke erstatter</strong> &#x2014; Strategy Office.<br>
+      &#x2022; Tallene kraever fortolkning i kontekst. Ingen score staar alene.<br>
+      &#x2022; Manglende data vises aerligt. Intet fabriceres.
+    </div>
+  </div>
+
+  <div class="sektion">
+    <div class="sek-hoved"><div><div class="sh-label">Organisation</div><div class="sh-titel">Stamdata</div></div></div>
+    <div class="sek-body">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+        <div class="form-felt"><label>Organisations-ID</label><input type="text" id="ops-org-id" placeholder="fx ORG-VELLIV-01"></div>
+        <div class="form-felt"><label>Organisationsnavn</label><input type="text" id="ops-org-navn" placeholder="fx Velliv A/S"></div>
+        <div class="form-felt"><label>Eksekveringskonsulent (ekstern)</label><input type="text" id="ops-konsulent" placeholder="fx Thomas K."></div>
+        <div class="form-felt"><label>Strategikontor-kontakt (intern)</label><input type="text" id="ops-intern" placeholder="fx Anne (sekretaer)"></div>
+      </div>
+      <div class="form-felt"><label>Kontekst / Programbeskrivelse</label><textarea id="ops-beskr" rows="2" placeholder="12 initiativer, Ryk 1-4, programkontekst..."></textarea></div>
+    </div>
+  </div>
+  <div class="sektion">
+    <div class="sek-hoved"><div><div class="sh-label">SSI-konfiguration</div><div class="sh-titel">Komponentvaegting (skal summere til 100%)</div></div></div>
+    <div class="sek-body">
+      <p style="font-size:13px;color:var(--text3);margin-bottom:18px;line-height:1.7">Juster vaegting af de 8 SSI-komponenter. Sum skal vaere 100.</p>
+      <div class="weight-grid" id="weight-grid"></div>
+      <div class="weight-sum" id="weight-sum">Sum: 100%</div>
+    </div>
+  </div>
+  <div class="sektion">
+    <div class="sek-hoved"><div><div class="sh-label">KPI-konfiguration</div><div class="sh-titel">RAG-taerskler</div></div></div>
+    <div class="sek-body">
+      <p style="font-size:13px;color:var(--text3);margin-bottom:18px;line-height:1.7">Gron = inden for mal. Orange = advarsel. Rod = handling kraeves.</p>
+      <div class="taerskel-grid" id="taerskel-grid"></div>
+    </div>
+  </div>
+  <div class="sektion">
+    <div class="sek-hoved"><div><div class="sh-label">OFI + EMI Metode</div><div class="sh-titel">Beregningsmetode v1.0</div></div></div>
+    <div class="sek-body">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:18px">
+        <div style="padding:16px;background:var(--navy3);border:1px solid var(--brd);border-radius:8px">
+          <div style="font-size:10px;text-transform:uppercase;letter-spacing:.12em;color:#fb923c;font-weight:700;margin-bottom:10px">OFI &#x2014; Organizational Friction Index</div>
+          <div style="font-size:13px;color:var(--text2);line-height:1.7">
+            <strong>Friction Load</strong> (vaegt 30%): Normaliseret fra antal abne friktioner (0&#x2192;100, 10+&#x2192;0)<br>
+            <strong>Decision Escalation</strong> (vaegt 25%): Invers % eskalerede beslutninger<br>
+            <strong>Leader Overload</strong> (vaegt 25%): Score baseret pa antal overbelastede ledere<br>
+            <strong>Behaviour Risk</strong> (vaegt 20%): Invers behaviour risk score<br><br>
+            Hoj OFI = lav friktion. Lav OFI = hoj friktion. Alle komponenter er null-safe.
+          </div>
+        </div>
+        <div style="padding:16px;background:var(--navy3);border:1px solid var(--brd);border-radius:8px">
+          <div style="font-size:10px;text-transform:uppercase;letter-spacing:.12em;color:#4ade80;font-weight:700;margin-bottom:10px">EMI &#x2014; Execution Momentum Index</div>
+          <div style="font-size:13px;color:var(--text2);line-height:1.7">
+            <strong>Closure Rate</strong> (vaegt 30%): Normaliseret beslutnings-closure %<br>
+            <strong>Milestone Hit</strong> (vaegt 25%): Gns. milestoneProgress (0-100)<br>
+            <strong>Decision Speed</strong> (vaegt 25%): Invers normalisering (0d=100, 60d+=0)<br>
+            <strong>Team Confidence</strong> (vaegt 20%): Gns. teamConfidenceScore &#xd7; 20<br><br>
+            Hoj EMI = staerk fremdrift. Lav EMI = tab af momentum. Alle komponenter er null-safe.
+          </div>
+        </div>
+      </div>
+      <div style="margin-top:16px;font-size:12px;color:var(--text3);line-height:1.7;padding:12px 16px;background:var(--navy3);border:1px solid var(--brd);border-radius:8px">
+        <strong style="color:var(--gold2)">Execution Thermodynamics:</strong> Execution Health = Momentum minus Friction. Dette er et fortolkningsprincip &#x2014; ikke en matematisk formel. Naar momentum falder og friktion stiger, er organisationen i fare for at miste strategisk retning. Indeksene supplerer SSI med retningsbestemt indsigt.
+      </div>
+    </div>
+  </div>
+  <div class="sektion">
+    <div class="sek-hoved"><div><div class="sh-label">Farezone</div><div class="sh-titel">Datareset</div></div></div>
+    <div class="sek-body">
+      <p style="font-size:13px;color:var(--text3);margin-bottom:16px;line-height:1.7">Eksporter backup inden reset. Data kan ikke gendannes.</p>
+      <div class="btn-gruppe"><button class="btn btn-danger" onclick="rydAlt(true)">&#x26A0; Slet alle indsendelser og snapshots</button></div>
+    </div>
+  </div>
+</div>
+
+<!-- ========================================================
+     SIDE: POSITIONERING (Strategy Office)
+     ======================================================== -->
+<div class="page" id="side-roller">
+  <div class="page-hoved">
+    <div><div class="ph-label">Positionering</div><div class="ph-titel">Strategy Office &amp; Observatory&#x2122;</div></div>
+  </div>
+  <div class="rolle-banner">
+    <div class="rb-citat">&#x201C;Vi erstatter ikke jeres strategiproces eller KPI&#x2019;er. Vi etablerer et minimalt governance-lag der gor execution gaps malbare og reducerbare &#x2014; beslutninger, friktion, closure og fokusdisciplin &#x2014; maned for maned, indeks for indeks.&#x201D;</div>
+    <div class="rb-kilde">Strategy Execution Observatory&#x2122; &#xb7; Closing the strategy execution gap</div>
+  </div>
+  <div class="rolle-split">
+    <div class="rolle-kort rk-intern">
+      <div class="rk-hoved"><div class="rk-ikon">&#x1F3DB;</div><div><div class="rk-sub">Internt ansvar</div><div class="rk-titel">Strategikontoret</div></div></div>
+      <div class="rk-body">
+        <div class="rk-sektion"><div class="rk-sek-lbl">Ejer og driver</div><ul class="rk-liste"><li>Strategi, vision og retning for alle initiativer</li><li>Business-KPI&#x2019;er og initiativ-KPI&#x2019;er</li><li>Portefolje-overblik og prioriteringsrammer</li></ul></div>
+      </div>
+    </div>
+    <div class="rolle-kort rk-ekstern">
+      <div class="rk-hoved"><div class="rk-ikon">&#x26A1;</div><div><div class="rk-sub">Eksternt ansvar</div><div class="rk-titel">Execution Governance Partner</div></div></div>
+      <div class="rk-body">
+        <div class="rk-sektion"><div class="rk-sek-lbl">Scope</div><ul class="rk-liste"><li>Driver Observatory&#x2122; &#x2014; diagnostisk execution-governance-lag</li><li>Maler SSI, OFI, EMI maned for maned</li><li>Synliggor friktion, momentum og execution gaps</li><li>Ugentlig Closure Pulse &#xb7; Maanedlig Observatory Summary</li></ul></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+</main>
+</div>
+
+<script>
+// ══════════════════════════════════════════════════════════════
+// STRATEGY EXECUTION OBSERVATORY™ — Admin Control Tower v7.0
+// SSI + OFI + EMI, Schema v7.0, Tamper-Evident Audit Trail
+// ══════════════════════════════════════════════════════════════
+
+const SCHEMA='7.0';
+const LS_I='egf_adm_inds_v70',LS_S='egf_adm_snaps_v70',LS_O='egf_adm_ops_v70',LS_K='egf_adm_kpi_v70';
+
+// ── STRATEGY TARGETS ────────────────────────────────────────
+const STRATEGY_TARGETS = [
+  {id:'market_share',label:'Market Share',drivers:['decision_speed','milestone_hit']},
+  {id:'customer_satisfaction',label:'Customer Satisfaction',drivers:['team_confidence','competence_ready']},
+  {id:'cost_discipline',label:'Cost Discipline',drivers:['capacity_realism','friction_load']},
+  {id:'growth_execution',label:'Growth Execution',drivers:['closure_rate','milestone_hit']},
+  {id:'risk_governance',label:'Risk Governance',drivers:['risk_exposure','closure_rate']},
+  {id:'operational_excellence',label:'Operational Excellence',drivers:['friction_load','capacity_realism']},
+];
+
+// ── KPI DEFINITIONS ─────────────────────────────────────────
+const KPI_DEFINITIONS = [
+  {id:'closure_rate',label:'Closure Rate',unit:'%',direction:'higher_better',formulaText:'count(decisions.status=Besluttet)/count(decisions)*100',thresholds:{green:80,orange:60,red:40},normalize:{method:'identity',description:'Raw % maps directly to 0-100 scale'}},
+  {id:'decision_speed',label:'Decision Lead Time',unit:'days',direction:'lower_better',formulaText:'median(days_between(datoRejst,datoBesluttet))',thresholds:{green:14,orange:30,red:60},normalize:{method:'inverse_linear',max:60,description:'0 days=100, 60+ days=0'}},
+  {id:'capacity_realism',label:'Capacity Realism',unit:'%',direction:'higher_better',formulaText:'avg(realistiskKapacitet/planlagtKapacitet)*100',thresholds:{green:80,orange:60,red:40},normalize:{method:'identity',description:'Raw % maps directly to 0-100 scale'}},
+  {id:'milestone_hit',label:'Milestone Hit Rate',unit:'%',direction:'higher_better',formulaText:'avg(milestoneProgress)',thresholds:{green:80,orange:60,red:40},normalize:{method:'identity',description:'Raw % maps directly to 0-100 scale'}},
+  {id:'friction_load',label:'Friction Load',unit:'count',direction:'lower_better',formulaText:'count(frictions.status=open)',thresholds:{green:3,orange:7,red:10},normalize:{method:'inverse_linear',max:10,description:'0 open=100, 10+ open=0'}},
+  {id:'risk_exposure',label:'Risk Exposure',unit:'score',direction:'lower_better',formulaText:'avg(probability*impact) for open risks',thresholds:{green:6,orange:12,red:20},normalize:{method:'inverse_linear',max:25,description:'SxP=0→100, SxP≥25→0'}},
+  {id:'team_confidence',label:'Team Confidence',unit:'1-5',direction:'higher_better',formulaText:'avg(teamConfidenceScore)',thresholds:{green:4,orange:3,red:2},normalize:{method:'scale',factor:20,description:'1-5 scale × 20 → 0-100'}},
+  {id:'competence_ready',label:'Competence Readiness',unit:'1-5',direction:'higher_better',formulaText:'avg(competenceReadiness)',thresholds:{green:4,orange:3,red:2},normalize:{method:'scale',factor:20,description:'1-5 scale × 20 → 0-100'}},
+];
+
+const DEFAULT_SSI_WEIGHTS = {
+  closure_rate:20, decision_speed:15, capacity_realism:15,
+  milestone_hit:10, friction_load:10, risk_exposure:10,
+  team_confidence:10, competence_ready:10
+};
+
+// v7.0: OFI WEIGHTS (documented, transparent)
+const OFI_WEIGHTS = {friction_load:30, decision_escalation:25, leader_overload:25, behaviour_risk:20};
+// v7.0: EMI WEIGHTS (documented, transparent)
+const EMI_WEIGHTS = {closure_rate:30, milestone_hit:25, decision_speed:25, team_confidence:20};
+
+const NORMALIZATION_RULES = {
+  closure_rate:{method:'identity'},decision_speed:{method:'inverse_linear',max:60},
+  capacity_realism:{method:'identity'},milestone_hit:{method:'identity'},
+  friction_load:{method:'inverse_linear',max:10},risk_exposure:{method:'inverse_linear',max:25},
+  team_confidence:{method:'scale',factor:20},competence_ready:{method:'scale',factor:20}
+};
+
+const GOVERNANCE_CONFIG = {
+  MAX_INITIATIVES_PER_LEADER: 5,
+  MISSING_REPORTING_PENALTY: 0.7,
+  DECISION_ESCALATION_THRESHOLD: 0.3,
+};
+
+const KPI_LABELS = KPI_DEFINITIONS.map(d=>({id:d.id,label:d.label,unit:d.unit,direction:d.direction}));
+
+let indsendelser=[],snapshots=[],ops={orgId:'',orgNavn:'',taerskler:{},ssiWeights:{...DEFAULT_SSI_WEIGHTS}};
+let sidsteKPI=null,sidsteSSI=null,sidsteOFI=null,sidsteEMI=null,aktivSnapId=null;
+
+document.addEventListener('DOMContentLoaded',()=>{
+  indlaesState();gengiverTaerskler();gengiverWeights();opdaterSidebar();opdaterEksMeta();
+});
+
+// ── SCHEMA MIGRATION v1.0–v6.2 → v7.0 (null-safe) ─────────
+function migrateIndsendelse(d){
+  const ver=d.schemaVersion||'1.0';
+  if(ver===SCHEMA)return d;
+  // v6.0/v6.1/v6.2 → v7.0: preserve all fields, bump schema
+  if(ver==='6.2'||ver==='6.1'||ver==='6.0'){
+    const m={...d,schemaVersion:SCHEMA,_migratedFrom:ver};
+    if(!m.createdAt) m.createdAt=m.oprettetTidspunkt||new Date().toISOString();
+    return m;
+  }
+  const m={...d,schemaVersion:SCHEMA,_migratedFrom:ver};
+  const h=m.eksekveringsSundhed||{};
+  if(ver==='1.0'||ver==='3.0'||!ver){
+    if(h.teamConfidenceScore==null){const legacy=h.teamStemning??h.teamMood??null;h.teamConfidenceScore=legacy!=null?+legacy||null:null}
+    if(h.competenceReadiness==null) h.competenceReadiness=null;
+    if(h.milestoneProgress==null){
+      const mp=h.milepælPåSporet||h.milePaelPaaSporet||h.milestoneOnTrack;
+      if(typeof mp==='string'){const map={ja:100,yes:100,delvist:50,partial:50,nej:0,no:0};h.milestoneProgress=map[mp.toLowerCase()]??null}
+      else if(typeof mp==='number'){h.milestoneProgress=mp}
+      else{h.milestoneProgress=null}
+    }
+    if(!m.initiativStatuser){const st=h.stoppetInitiativer||0;m.initiativStatuser={};if(st>0) h._legacyStoppet=st}
+    (m.friktionsLog||[]).forEach(f=>{if(f.impactScore==null){const p=(f.pavirkning||'').toLowerCase();const map={'hoj':5,'høj':5,'mellem':3,'lav':1};f.impactScore=map[p]??null}});
+    (m.beslutningsLog||[]).forEach(b=>{if(!b.datoLukket&&b.datoBesluttet) b.datoLukket=b.datoBesluttet});
+    (m.risikoLog||[]).forEach(r=>{if(typeof r.sandsynlighed==='string') r.sandsynlighed=+r.sandsynlighed||null;if(typeof r.pavirkning==='string') r.pavirkning=+r.pavirkning||null});
+  }
+  if(ver==='4.0'){
+    if(m.ssiWeights){if(m.ssiWeights.milestone_hit_rate!==undefined){m.ssiWeights.milestone_hit=m.ssiWeights.milestone_hit_rate;delete m.ssiWeights.milestone_hit_rate}if(m.ssiWeights.competence_readiness!==undefined){m.ssiWeights.competence_ready=m.ssiWeights.competence_readiness;delete m.ssiWeights.competence_readiness}}
+    if(Array.isArray(m.kpiDefinitions)){m.kpiDefinitions.forEach(k=>{if(k.id==='milestone_hit_rate')k.id='milestone_hit';if(k.id==='competence_readiness')k.id='competence_ready'})}
+  }
+  if(ver==='5.0'||ver==='4.0'||ver==='3.0'||ver==='1.0'||!ver){
+    if(!m.strategyLinks) m.strategyLinks=m.strategyLinks||{};
+    if(!h.milestoneDate) h.milestoneDate=null;
+    delete m.config;delete m.kpiDefinitions;delete m.ssiWeights;delete m.normalizationRules;
+  }
+  if(ver==='5.1'){
+    if(m.strategyLinks){Object.keys(m.strategyLinks).forEach(k=>{if(!m.strategyLinks[k]) m.strategyLinks[k]='Unmapped'})}
+    if(!m.createdAt) m.createdAt=m.oprettetTidspunkt||new Date().toISOString();
+    delete m.config;
+  }
+  m.schemaVersion=SCHEMA;m.eksekveringsSundhed=h;return m;
+}
+
+// ── PERSISTENS ──────────────────────────────────────────────
+function gemState(){
+  try{
+    localStorage.setItem(LS_I,JSON.stringify(indsendelser));
+    localStorage.setItem(LS_S,JSON.stringify(snapshots));
+    localStorage.setItem(LS_O,JSON.stringify(ops));
+    if(sidsteKPI)localStorage.setItem(LS_K,JSON.stringify({kpi:sidsteKPI,ssi:sidsteSSI,ofi:sidsteOFI,emi:sidsteEMI}));
+  }catch(e){vis('Lagerplads mangler — eksporter data nu','fejl')}
+}
+
+function indlaesState(){
+  try{
+    // v7.0: Fallback to v6.2, v6.1, v6.0 LS keys
+    const fallbackKeys=['v62','v61','v60','v51','v4','v3'];
+    if(!localStorage.getItem(LS_I)){
+      for(const fk of fallbackKeys){
+        const testKey='egf_adm_inds_'+fk;
+        if(localStorage.getItem(testKey)){
+          ['inds','snaps','ops','kpi'].forEach(k=>{
+            const old=localStorage.getItem('egf_adm_'+k+'_'+fk);
+            if(old) localStorage.setItem('egf_adm_'+k+'_v70',old);
+          });
+          break;
+        }
+      }
+    }
+    let i=localStorage.getItem(LS_I);if(i)indsendelser=JSON.parse(i);
+    let s=localStorage.getItem(LS_S);if(s)snapshots=JSON.parse(s);
+    let o=localStorage.getItem(LS_O);if(o){ops={...ops,...JSON.parse(o)};if(!ops.ssiWeights)ops.ssiWeights={...DEFAULT_SSI_WEIGHTS}}
+    let k=localStorage.getItem(LS_K);
+    if(k){const kd=JSON.parse(k);if(kd.kpi){sidsteKPI=kd.kpi;sidsteSSI=kd.ssi;sidsteOFI=kd.ofi||null;sidsteEMI=kd.emi||null}else sidsteKPI=kd}
+    sv('ops-org-id',ops.orgId||'');sv('ops-org-navn',ops.orgNavn||'');sv('ops-konsulent',ops.konsulent||'');sv('ops-intern',ops.intern||'');sv('ops-beskr',ops.beskr||'');
+    gengiverFilerListe();gengiverMaster();gengiverKPIGrid();gengiverSnapPills();opdaterSidebar();
+    if(sidsteSSI||sidsteOFI||sidsteEMI)gengiverObservatory();
+  }catch(e){console.error('Indlaesningsfejl',e)}
+}
+
+function hentWeights(){const w={...DEFAULT_SSI_WEIGHTS};KPI_DEFINITIONS.forEach(d=>{const el=gi('w-'+d.id);if(el)w[d.id]=+el.value||0});return w}
+function hentTaerskler(){const t={};KPI_DEFINITIONS.forEach(d=>{const g=gi('t-'+d.id+'-g'),o=gi('t-'+d.id+'-o');t[d.id]={green:g?+g.value:d.thresholds.green,orange:o?+o.value:d.thresholds.orange,red:d.thresholds.red,direction:d.direction}});return t}
+
+// ── NAVIGATION ──────────────────────────────────────────────
+function skiftSide(id){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('akt'));
+  document.querySelectorAll('.nav-btn').forEach(b=>{b.classList.remove('akt');b.classList.remove('akt-blue')});
+  gi('side-'+id)?.classList.add('akt');
+  const nb=gi('nav-'+id);if(nb)nb.classList.add(id==='roller'?'akt-blue':'akt');
+}
+function skiftManual(id){const b=gi('mb-'+id),btn=gi('mt-'+id);const a=b?.classList.toggle('open');btn?.classList.toggle('open',a)}
+
+// ── IMPORT ──────────────────────────────────────────────────
+function skiftImpKrypt(){gi('imp-kode-felt').style.display=gi('imp-krypt').checked?'block':'none'}
+function skiftEksKrypt(){gi('eks-kode-felt').style.display=gi('eks-krypt').checked?'block':'none'}
+function dropHandler(e){e.preventDefault();gi('import-zone').classList.remove('drag');const f=Array.from(e.dataTransfer.files).filter(f=>f.name.endsWith('.json'));if(f.length)processerFiler(f)}
+async function importFiler(e){const f=Array.from(e.target.files);if(f.length)await processerFiler(f);e.target.value=''}
+
+async function processerFiler(filer){
+  let imp=0,fejl=0,migrated=0;
+  const kode=gi('imp-krypt').checked?v('imp-adgangskode'):'';
+  for(const fil of filer){
+    try{
+      let t=await fil.text();let d=JSON.parse(t);
+      if(d.__krypteret){if(!kode){vis(fil.name+': Angiv adgangskode','fejl');fejl++;continue}d=JSON.parse(await dekrypter(d,kode))}
+      if(!d.schemaVersion&&!d.indsender&&!d.beslutningsLog){vis(fil.name+': Ukendt format','fejl');fejl++;continue}
+      const origVer=d.schemaVersion||'1.0';
+      d=migrateIndsendelse(d);
+      if(origVer!==SCHEMA)migrated++;
+      let submissionVerified=false;
+      if(d.submissionHash){try{const vr=await verifySubmissionHash(d);submissionVerified=vr.valid;if(!vr.valid) vis('Advarsel: submissionHash ugyldigt for '+fil.name,'fejl')}catch(e){console.warn('Verification failed:',e)}}
+      const obj={data:d,filnavn:fil.name,importeret:new Date().toISOString(),migratedFrom:origVer!==SCHEMA?origVer:null,submissionVerified};
+      const eks=indsendelser.findIndex(i=>i.data.indsendelsesId===d.indsendelsesId);
+      if(eks>=0){if(new Date(d.sidstGemt||0)>=new Date(indsendelser[eks].data.sidstGemt||0))indsendelser[eks]=obj}
+      else indsendelser.push(obj);
+      imp++;
+    }catch(e){vis(fil.name+': '+e.message,'fejl');fejl++}
+  }
+  if(imp>0){gengiverFilerListe();gengiverMaster();opdaterSidebar();gemState()}
+  vis(imp+' importeret'+(migrated?' ('+migrated+' migreret til v'+SCHEMA+')':'')+(fejl?', '+fejl+' fejlede':''),imp>0?'ok':'fejl');
+}
+
+function gengiverFilerListe(){
+  const el=gi('filer-liste');
+  if(!indsendelser.length){el.innerHTML='<div class="tom-tilstand">Ingen filer importeret endnu</div>';return}
+  el.innerHTML=indsendelser.map((item,i)=>{
+    const d=item.data;const h=d.eksekveringsSundhed||{};
+    const b=d.beslutningsLog?.length||0,f=d.friktionsLog?.length||0,r=d.risikoLog?.length||0;
+    const mig=item.migratedFrom?` <span style="color:var(--gold);font-size:9px">[v${item.migratedFrom}\u2192v${SCHEMA}]</span>`:'';
+    return `<div class="fil-item"><span>\u{1F4C4}</span><div style="flex:1"><div class="fi-navn">${item.filnavn}${mig}</div><div class="fi-meta">${d.indsender?.pseudonym||'?'} \u00b7 ${d.periode?.label||'?'} \u00b7 TC:${h.teamConfidenceScore!=null?h.teamConfidenceScore:'\u2014'} MS:${h.milestoneProgress!=null?h.milestoneProgress+'%':'\u2014'}</div></div><div class="fi-meta">${b}B/${f}F/${r}R</div><span class="s-badge" style="background:var(--gron-dim);color:#4ade80">\u2713 v${SCHEMA}</span><button class="btn btn-danger btn-sm" onclick="fjernInd(${i})">\u2715</button></div>`;
+  }).join('');
+  gi('import-meta').textContent=indsendelser.length+' filer importeret (schema v'+SCHEMA+')';
+}
+function fjernInd(i){if(!confirm('Fjern denne indsendelse?'))return;indsendelser.splice(i,1);gengiverFilerListe();gengiverMaster();opdaterSidebar();gemState()}
+
+// ── ALLE POSTER ─────────────────────────────────────────────
+function allePoster(){
+  const b=[],f=[],r=[];
+  indsendelser.forEach(item=>{
+    const ind=item.data.indsender?.pseudonym||item.filnavn;
+    (item.data.beslutningsLog||[]).forEach(x=>b.push({...x,_ind:ind}));
+    (item.data.friktionsLog||[]).forEach(x=>f.push({...x,_ind:ind}));
+    (item.data.risikoLog||[]).forEach(x=>r.push({...x,_ind:ind}));
+  });
+  return{b,f,r};
+}
+
+// ── CANONICAL / SHA-256 / HASH CHAIN ────────────────────────
+function canonical(obj){if(obj===null||obj===undefined)return JSON.stringify(obj);if(typeof obj!=='object')return JSON.stringify(obj);if(Array.isArray(obj))return '['+obj.map(canonical).join(',')+']';return '{'+Object.keys(obj).sort().map(k=>JSON.stringify(k)+':'+canonical(obj[k])).join(',')+'}'}
+async function sha256(str){const buf=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(str));return Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,'0')).join('')}
+async function computeAuditHash(prevHash,entry){return sha256((prevHash||'GENESIS')+canonical(entry))}
+async function computeConfigFingerprint(){return sha256(canonical({kpiDefinitions:KPI_DEFINITIONS,ssiWeights:ops.ssiWeights||DEFAULT_SSI_WEIGHTS,normalizationRules:NORMALIZATION_RULES,thresholds:ops.taerskler||{},strategyTargets:STRATEGY_TARGETS,governanceConfig:GOVERNANCE_CONFIG,ofiWeights:OFI_WEIGHTS,emiWeights:EMI_WEIGHTS}))}
+async function computeRawInputHash(){return sha256(canonical(indsendelser.map(i=>i.data)))}
+async function verifySubmissionHash(data){if(!data.submissionHash) return{valid:false,reason:'No submissionHash'};const payload={...data};delete payload.submissionHash;const computed=await sha256(canonical(payload));return{valid:computed===data.submissionHash,expected:data.submissionHash,computed}}
+
+// ── STRATEGY TARGETS IMPACT ─────────────────────────────────
+function computeStrategyTargetsImpact(){
+  if(!sidsteSSI)return[];
+  return STRATEGY_TARGETS.map(t=>{
+    const drivers=t.drivers.map(dId=>{const comp=sidsteSSI.components.find(c=>c.id===dId);if(!comp)return{id:dId,label:dId,normalized:null,rag:'graa'};return{id:dId,label:comp.label,normalized:comp.normalized,raw:comp.raw,rag:comp.normalized==null?'graa':comp.normalized>=70?'gron':comp.normalized>=50?'orange':'rod'}});
+    const worstRag=drivers.some(d=>d.rag==='rod')?'rod':drivers.some(d=>d.rag==='orange')?'orange':drivers.every(d=>d.rag==='gron')?'gron':'graa';
+    const riskStatement=worstRag==='rod'?'Kritisk \u2014 handling kr\u00e6ves':worstRag==='orange'?'Opm\u00e6rksom \u2014 monitor':null;
+    return{id:t.id,label:t.label,drivers,worstRag,riskStatement};
+  });
+}
+
+// ── RAG FARVE ───────────────────────────────────────────────
+function ragForKPI(id,val){
+  if(val==null)return 'graa';const def=KPI_DEFINITIONS.find(d=>d.id===id);if(!def)return 'graa';
+  const t=ops.taerskler?.[id]||def.thresholds;const g=t.green,o=t.orange;
+  if(def.direction==='lower_better')return val<=g?'gron':val<=o?'orange':'rod';
+  return val>=g?'gron':val>=o?'orange':'rod';
+}
+
+// ── v6.2: GOVERNANCE INSIGHTS ───────────────────────────────
+function computeGovernanceInsights(alle){
+  const allB=alle?.b||[];
+  const withLevel=allB.filter(b=>b.decisionLevel);
+  const escalated=withLevel.filter(b=>b.decisionLevel==='Executive'||b.decisionLevel==='Board');
+  const escalationRate=withLevel.length>0?Math.round(escalated.length/withLevel.length*100):null;
+  const leaderMap={};
+  indsendelser.forEach(ind=>{const leader=ind.data?.indsender?.pseudonym||'Unknown';const active=Object.values(ind.data?.initiativStatuser||{}).filter(s=>s==='Active').length;leaderMap[leader]=(leaderMap[leader]||0)+active});
+  const overloadedLeaders=Object.entries(leaderMap).filter(([_,count])=>count>GOVERNANCE_CONFIG.MAX_INITIATIVES_PER_LEADER).map(([leader,count])=>({leader,count,max:GOVERNANCE_CONFIG.MAX_INITIATIVES_PER_LEADER}));
+  const missingInitiatives=[];
+  indsendelser.forEach(ind=>{const statuses=ind.data?.initiativStatuser||{};Object.entries(statuses).filter(([_,s])=>s==='Active').forEach(([initId])=>{const hasData=ind.data?.beslutningsLog?.length>0;if(!hasData) missingInitiatives.push({initiativ:initId,leader:ind.data?.indsender?.pseudonym||'?'})})});
+  const keywords={};
+  indsendelser.forEach(ind=>{const comment=ind.data?.eksekveringsSundhed?.confidenceComment;if(comment){comment.toLowerCase().split(/[\s,;.]+/).filter(w=>w.length>3).forEach(w=>{keywords[w]=(keywords[w]||0)+1})}});
+  const topKeywords=Object.entries(keywords).sort((a,b)=>b[1]-a[1]).slice(0,10).map(([w,c])=>({word:w,count:c}));
+  let compGapTrend=null;
+  if(snapshots.length>=2){const prev=snapshots[snapshots.length-2]?.ssi?.components?.find(c=>c.id==='competence_ready');const curr=sidsteSSI?.components?.find(c=>c.id==='competence_ready');if(prev?.normalized!=null&&curr?.normalized!=null){compGapTrend={previous:prev.normalized,current:curr.normalized,delta:Math.round((curr.normalized-prev.normalized)*10)/10}}}
+  const riskFactors=[];
+  if(escalationRate!=null&&escalationRate>GOVERNANCE_CONFIG.DECISION_ESCALATION_THRESHOLD*100) riskFactors.push('Hoj eskaleringsrate ('+escalationRate+'%)');
+  if(overloadedLeaders.length>0) riskFactors.push(overloadedLeaders.length+' leder(e) overbelastet');
+  if(missingInitiatives.length>0) riskFactors.push(missingInitiatives.length+' initiativer mangler rapportering');
+  const behaviourRiskScore=Math.min(100,riskFactors.length*25);
+  return{decisionEscalationRate:escalationRate,escalatedDecisions:escalated.length,totalDecisionsWithLevel:withLevel.length,overloadedLeaders,missingInitiatives,missingPenaltyApplied:missingInitiatives.length>0,topConfidenceKeywords:topKeywords,competenceGapTrend:compGapTrend,behaviourRiskScore,behaviourRiskFactors:riskFactors,governanceConfig:{...GOVERNANCE_CONFIG}};
+}
+
+// ══════════════════════════════════════════════════════════════
+// CENTRAL CALCULATION ENGINE — SSI + OFI + EMI
+// ══════════════════════════════════════════════════════════════
+function beregnKPIer(){
+  if(!indsendelser.length){vis('Ingen data \u2014 importer filer','fejl');return}
+  const alle=allePoster();const idag=new Date();idag.setHours(0,0,0,0);
+  const W=ops.ssiWeights||DEFAULT_SSI_WEIGHTS;
+
+  // 1) CLOSURE RATE
+  const crRaw=alle.b.length?Math.round(alle.b.filter(b=>b.status==='Besluttet').length/alle.b.length*100):null;
+  // 2) DECISION SPEED
+  const afkl=alle.b.filter(b=>b.datoBesluttet&&b.datoRejst).map(b=>Math.round((new Date(b.datoBesluttet)-new Date(b.datoRejst))/86400000)).filter(d=>d>=0).sort((a,b)=>a-b);
+  const dsRaw=afkl.length?(afkl.length%2===0?(afkl[afkl.length/2-1]+afkl[afkl.length/2])/2:afkl[Math.floor(afkl.length/2)]):null;
+  // 3) CAPACITY REALISM
+  const kapD=indsendelser.map(i=>i.data.eksekveringsSundhed).filter(h=>h&&h.planlagtKapacitet>0);
+  const capRaw=kapD.length?Math.round(kapD.reduce((s,h)=>s+(h.realistiskKapacitet||0)/(h.planlagtKapacitet||100)*100,0)/kapD.length):null;
+  // 4) MILESTONE HIT RATE
+  const msD=indsendelser.map(i=>i.data.eksekveringsSundhed?.milestoneProgress).filter(v=>v!=null);
+  const msRaw=msD.length?Math.round(msD.reduce((s,v)=>s+v,0)/msD.length):null;
+  // 5) FRICTION LOAD
+  const frRaw=alle.f.filter(f=>f.status!=='Lukket').length;
+  // 6) RISK EXPOSURE
+  const openR=alle.r.filter(r=>r.status!=='Lukket'&&r.status!=='Accepteret');
+  const rkRaw=openR.length?Math.round(openR.reduce((s,r)=>s+((r.sandsynlighed||0)*(r.pavirkning||0)),0)/openR.length*10)/10:0;
+  // 7) TEAM CONFIDENCE
+  const tcD=indsendelser.map(i=>i.data.eksekveringsSundhed?.teamConfidenceScore).filter(v=>v!=null);
+  const tcRaw=tcD.length?Math.round(tcD.reduce((s,v)=>s+v,0)/tcD.length*10)/10:null;
+  // 8) COMPETENCE READINESS
+  const compD=indsendelser.map(i=>i.data.eksekveringsSundhed?.competenceReadiness).filter(v=>v!=null);
+  const compRaw=compD.length?Math.round(compD.reduce((s,v)=>s+v,0)/compD.length*10)/10:null;
+
+  // NORMALIZE all to 0-100
+  const norm={
+    closure_rate:crRaw!=null?Math.round(Math.min(100,Math.max(0,crRaw))):null,
+    decision_speed:dsRaw!=null?Math.round(Math.min(100,Math.max(0,100-dsRaw/60*100))):null,
+    capacity_realism:capRaw!=null?Math.round(Math.min(100,Math.max(0,capRaw))):null,
+    milestone_hit:msRaw!=null?Math.round(Math.min(100,Math.max(0,msRaw))):null,
+    friction_load:Math.min(100,Math.max(0,Math.round(100-frRaw/10*100))),
+    risk_exposure:Math.min(100,Math.max(0,Math.round(100-rkRaw/25*100))),
+    team_confidence:tcRaw!=null?Math.min(100,Math.max(0,Math.round(tcRaw*20))):null,
+    competence_ready:compRaw!=null?Math.min(100,Math.max(0,Math.round(compRaw*20))):null,
+  };
+
+  // SSI = weighted sum (only non-null)
+  let ssiSum=0,ssiWSum=0;
+  Object.keys(norm).forEach(k=>{if(norm[k]!=null){ssiSum+=norm[k]*(W[k]||0)/100;ssiWSum+=(W[k]||0)}});
+  const ssi=ssiWSum>0?Math.round(ssiSum/ssiWSum*100*10)/10:null;
+
+  // Components array
+  const components=KPI_DEFINITIONS.map(d=>{const n=norm[d.id];const w=W[d.id]||0;const contribution=n!=null?Math.round(n*w/100*10)/10:0;const pressure=n!=null?Math.round((100-n)*w/100*10)/10:0;return{id:d.id,label:d.label,normalized:n,weight:w,contribution,pressure}});
+
+  // WHY sentences
+  const rawForWhy={closure_rate:crRaw,decision_speed:dsRaw!=null?Math.round(dsRaw):null,capacity_realism:capRaw,milestone_hit:msRaw,friction_load:frRaw,risk_exposure:rkRaw,team_confidence:tcRaw,competence_ready:compRaw};
+  const whySentences={};
+  KPI_DEFINITIONS.forEach(d=>{const raw=rawForWhy[d.id];const th=ops.taerskler?.[d.id]||d.thresholds;if(raw==null){whySentences[d.id]='Ingen data for '+d.label;return}const tgtOp=d.direction==='lower_better'?'\u2264':'\u2265';whySentences[d.id]=d.label+': '+raw+(d.unit==='%'?'%':d.unit==='days'?' dage':d.unit==='count'?' stk':d.unit==='score'?' (gns SxP)':d.unit==='1-5'?'/5':'')+' (target '+tgtOp+th.green+')'});
+
+  // Coverage
+  const dataCoverage={
+    closure_rate:{hasData:crRaw!=null?1:0,count:alle.b.length,total:indsendelser.length,source:'beslutninger'},
+    decision_speed:{hasData:dsRaw!=null?1:0,count:afkl.length,total:alle.b.length,source:'afklarede beslutninger'},
+    capacity_realism:{hasData:capRaw!=null?1:0,count:kapD.length,total:indsendelser.length,source:'indsendere med kapacitet'},
+    milestone_hit:{hasData:msRaw!=null?1:0,count:msD.length,total:indsendelser.length,source:'indsendere med milestone'},
+    friction_load:{hasData:1,count:alle.f.length,total:indsendelser.length,source:'friktioner'},
+    risk_exposure:{hasData:1,count:openR.length,total:alle.r.length,source:'abne risici'},
+    team_confidence:{hasData:tcRaw!=null?1:0,count:tcD.length,total:indsendelser.length,source:'indsendere med TC'},
+    competence_ready:{hasData:compRaw!=null?1:0,count:compD.length,total:indsendelser.length,source:'indsendere med COMP'},
+  };
+  const coverageCount=Object.values(dataCoverage).filter(d=>d.hasData).length;
+  components.forEach(c=>{c.raw=rawForWhy[c.id]??null;c.why=whySentences[c.id];c.coverageDetail=dataCoverage[c.id]});
+
+  // Driver ranking
+  const posDrivers=[...components].filter(c=>c.normalized!=null).sort((a,b)=>b.contribution-a.contribution).slice(0,3);
+  const negDrivers=[...components].filter(c=>c.normalized!=null).sort((a,b)=>b.pressure-a.pressure).slice(0,3);
+
+  // Sensitivity analysis
+  const sensitivity={};
+  components.forEach(c=>{
+    if(c.normalized==null){sensitivity[c.id]={deltaUp:null,deltaDown:null};return}
+    let upSum=0,upW=0;components.forEach(x=>{if(x.normalized==null)return;const val=x.id===c.id?Math.min(100,x.normalized+10):x.normalized;upSum+=val*x.weight/100;upW+=x.weight});
+    const ssiUp=upW>0?Math.round(upSum/upW*100*10)/10:null;
+    let dnSum=0,dnW=0;components.forEach(x=>{if(x.normalized==null)return;const val=x.id===c.id?Math.max(0,x.normalized-10):x.normalized;dnSum+=val*x.weight/100;dnW+=x.weight});
+    const ssiDn=dnW>0?Math.round(dnSum/dnW*100*10)/10:null;
+    sensitivity[c.id]={deltaUp:ssiUp!=null&&ssi!=null?Math.round((ssiUp-ssi)*10)/10:null,deltaDown:ssiDn!=null&&ssi!=null?Math.round((ssiDn-ssi)*10)/10:null};
+  });
+
+  // Top 3 lists
+  const t3B=alle.b.filter(b=>b.status==='Eskaleret'||(b.pavirkning==='Hoj'&&b.status==='Afventer')).slice(0,3).map(b=>({tekst:b.dod?.substring(0,55)||b.id,sub:(b.ansvarlig||'?')+' \u00b7 '+b.status+' \u00b7 Frist: '+(b.frist||'?')}));
+  const t3F=alle.f.filter(f=>(f.impactScore>=4||f.pavirkning==='Hoj')&&f.status!=='Lukket').sort((a,b)=>new Date(a.datoLogget)-new Date(b.datoLogget)).slice(0,3).map(f=>({tekst:f.problem?.substring(0,55)||f.id,sub:f.omraadeA+'\u2194'+f.omraadeB+' \u00b7 Impact: '+(f.impactScore||f.pavirkning)}));
+  const t3R=[...alle.r].filter(r=>r.status!=='Lukket'&&r.status!=='Accepteret').sort((a,b)=>((b.sandsynlighed||0)*(b.pavirkning||0))-((a.sandsynlighed||0)*(a.pavirkning||0))).slice(0,3).map(r=>({tekst:r.risikoBeskrivelse?.substring(0,55)||r.id,sub:'S'+r.sandsynlighed+'\u00d7P'+r.pavirkning+'='+(r.sandsynlighed*r.pavirkning)+' \u00b7 '+(r.ansvarlig||'?')}));
+
+  // Recommendations
+  const anbefalinger=[];
+  if(crRaw!=null&&crRaw<60)anbefalinger.push('Priorit\u00e9r closure: '+Math.round(100-crRaw)+'% beslutninger mangler afklaring \u2014 kald ekstra beslutningsmode.');
+  if(dsRaw!=null&&dsRaw>30)anbefalinger.push('Decision speed for lav (median '+Math.round(dsRaw)+'d) \u2014 indfor 7-dages eskaleringsregel for hoj-impact beslutninger.');
+  if(frRaw>5)anbefalinger.push('Friction overload ('+frRaw+' abne) \u2014 planlaeg dedikeret friktions-workshop med top 3 omrader.');
+  if(capRaw!=null&&capRaw<70)anbefalinger.push('Kapacitetsrealisme kritisk ('+capRaw+'%) \u2014 stop/pauser lavprioritets-initiativer for naeste periode.');
+  if(tcRaw!=null&&tcRaw<3)anbefalinger.push('Team confidence lav ('+tcRaw+'/5) \u2014 1:1 kalibrering med teamledere om blokeringer og motivation.');
+  if(rkRaw>12)anbefalinger.push('Risk exposure hoj (gns. SxP='+rkRaw+') \u2014 aktiver top 3 mitigationsplaner med ugentlig opfolgning.');
+  if(anbefalinger.length<3)anbefalinger.push('Fasthold nuvaerende governance-rytme og fokus pa closure.');
+  while(anbefalinger.length<3)anbefalinger.push('Dokumenter laering fra denne periode til naeste.');
+
+  const calculationMeta={schemaVersionUsed:SCHEMA,timestamp:new Date().toISOString(),coverageSummary:coverageCount+'/8 KPI components have data',totalInitiatives:indsendelser.length};
+
+  sidsteKPI={raw:{closureRate:crRaw,decisionSpeedDays:dsRaw!=null?Math.round(dsRaw):null,capacityRealism:capRaw,milestoneHitRate:msRaw,frictionLoadCount:frRaw,riskExposureAvg:rkRaw,teamConfidence:tcRaw,competenceReadiness:compRaw},normalized:norm,dataCoverage,calculationMeta,top3Beslutninger:t3B,top3Friktioner:t3F,top3Risici:t3R,beregnetTidspunkt:new Date().toISOString()};
+  sidsteSSI={score:ssi,components,weights:{...W},coverage:coverageCount+'/8',initiativesReporting:indsendelser.length+'/'+indsendelser.length,top3Positive:posDrivers,top3Negative:negDrivers,sensitivity,anbefalinger:anbefalinger.slice(0,3)};
+
+  // GOVERNANCE INSIGHTS
+  const govInsights=computeGovernanceInsights(alle);
+  sidsteKPI.governanceInsights=govInsights;sidsteSSI.governanceInsights=govInsights;
+
+  // ═══════════════════════════════════════════════════════════
+  // v7.0: OFI — ORGANIZATIONAL FRICTION INDEX
+  // ═══════════════════════════════════════════════════════════
+  const ofiComponents=[];let ofiSum=0,ofiWSum=0;
+
+  // OFI-1: Friction Load (already normalized in norm.friction_load)
+  const ofi_fl=norm.friction_load;
+  ofiComponents.push({id:'friction_load',label:'Friction Load',normalized:ofi_fl,weight:OFI_WEIGHTS.friction_load,raw:frRaw,description:'Abne friktioner: '+frRaw+' (lav=bedre)'});
+  if(ofi_fl!=null){ofiSum+=ofi_fl*OFI_WEIGHTS.friction_load/100;ofiWSum+=OFI_WEIGHTS.friction_load}
+
+  // OFI-2: Decision Escalation (inverse: high escalation = low score)
+  const escRate=govInsights.decisionEscalationRate;
+  const ofi_esc=escRate!=null?Math.min(100,Math.max(0,100-escRate)):null;
+  ofiComponents.push({id:'decision_escalation',label:'Decision Escalation',normalized:ofi_esc,weight:OFI_WEIGHTS.decision_escalation,raw:escRate,description:escRate!=null?escRate+'% eskalerede':'Ingen decision-level data'});
+  if(ofi_esc!=null){ofiSum+=ofi_esc*OFI_WEIGHTS.decision_escalation/100;ofiWSum+=OFI_WEIGHTS.decision_escalation}
+
+  // OFI-3: Leader Overload (inverse: more overloaded = lower score)
+  const overloadCount=govInsights.overloadedLeaders.length;
+  const totalLeaders=Object.keys(leaderMap_()).length||1;
+  const overloadPct=Math.round(overloadCount/totalLeaders*100);
+  const ofi_lo=Math.min(100,Math.max(0,100-overloadPct));
+  ofiComponents.push({id:'leader_overload',label:'Leader Overload',normalized:ofi_lo,weight:OFI_WEIGHTS.leader_overload,raw:overloadCount,description:overloadCount+' overbelastede af '+totalLeaders+' ledere'});
+  ofiSum+=ofi_lo*OFI_WEIGHTS.leader_overload/100;ofiWSum+=OFI_WEIGHTS.leader_overload;
+
+  // OFI-4: Behaviour Risk (inverse)
+  const brScore=govInsights.behaviourRiskScore;
+  const ofi_br=Math.min(100,Math.max(0,100-brScore));
+  ofiComponents.push({id:'behaviour_risk',label:'Behaviour Risk',normalized:ofi_br,weight:OFI_WEIGHTS.behaviour_risk,raw:brScore,description:'Risk score: '+brScore+'/100'});
+  ofiSum+=ofi_br*OFI_WEIGHTS.behaviour_risk/100;ofiWSum+=OFI_WEIGHTS.behaviour_risk;
+
+  const ofiScore=ofiWSum>0?Math.round(ofiSum/ofiWSum*100*10)/10:null;
+  const ofiCoverage=ofiComponents.filter(c=>c.normalized!=null).length+'/'+ofiComponents.length;
+  sidsteOFI={score:ofiScore,components:ofiComponents,coverage:ofiCoverage,weights:{...OFI_WEIGHTS},methodVersion:'1.0',calculationMeta:{timestamp:new Date().toISOString(),schemaVersion:SCHEMA,missingComponents:ofiComponents.filter(c=>c.normalized==null).map(c=>c.id)}};
+
+  // ═══════════════════════════════════════════════════════════
+  // v7.0: EMI — EXECUTION MOMENTUM INDEX
+  // ═══════════════════════════════════════════════════════════
+  const emiComponents=[];let emiSum=0,emiWSum=0;
+
+  // EMI-1: Closure Rate
+  const emi_cr=norm.closure_rate;
+  emiComponents.push({id:'closure_rate',label:'Closure Rate',normalized:emi_cr,weight:EMI_WEIGHTS.closure_rate,raw:crRaw,description:crRaw!=null?crRaw+'% besluttet':'Ingen beslutninger'});
+  if(emi_cr!=null){emiSum+=emi_cr*EMI_WEIGHTS.closure_rate/100;emiWSum+=EMI_WEIGHTS.closure_rate}
+
+  // EMI-2: Milestone Hit
+  const emi_ms=norm.milestone_hit;
+  emiComponents.push({id:'milestone_hit',label:'Milestone Hit Rate',normalized:emi_ms,weight:EMI_WEIGHTS.milestone_hit,raw:msRaw,description:msRaw!=null?msRaw+'% milestone':'Ingen milestone data'});
+  if(emi_ms!=null){emiSum+=emi_ms*EMI_WEIGHTS.milestone_hit/100;emiWSum+=EMI_WEIGHTS.milestone_hit}
+
+  // EMI-3: Decision Speed
+  const emi_ds=norm.decision_speed;
+  emiComponents.push({id:'decision_speed',label:'Decision Speed',normalized:emi_ds,weight:EMI_WEIGHTS.decision_speed,raw:dsRaw!=null?Math.round(dsRaw):null,description:dsRaw!=null?'Median '+Math.round(dsRaw)+' dage':'Ingen speed data'});
+  if(emi_ds!=null){emiSum+=emi_ds*EMI_WEIGHTS.decision_speed/100;emiWSum+=EMI_WEIGHTS.decision_speed}
+
+  // EMI-4: Team Confidence
+  const emi_tc=norm.team_confidence;
+  emiComponents.push({id:'team_confidence',label:'Team Confidence',normalized:emi_tc,weight:EMI_WEIGHTS.team_confidence,raw:tcRaw,description:tcRaw!=null?tcRaw+'/5':'Ingen confidence data'});
+  if(emi_tc!=null){emiSum+=emi_tc*EMI_WEIGHTS.team_confidence/100;emiWSum+=EMI_WEIGHTS.team_confidence}
+
+  const emiScore=emiWSum>0?Math.round(emiSum/emiWSum*100*10)/10:null;
+  const emiCoverage=emiComponents.filter(c=>c.normalized!=null).length+'/'+emiComponents.length;
+  sidsteEMI={score:emiScore,components:emiComponents,coverage:emiCoverage,weights:{...EMI_WEIGHTS},methodVersion:'1.0',calculationMeta:{timestamp:new Date().toISOString(),schemaVersion:SCHEMA,missingComponents:emiComponents.filter(c=>c.normalized==null).map(c=>c.id)}};
+
+  // Render everything
+  gengiverKPIGrid();gengiverSSI();gengiverTop3();gengiverExplainSSI();gengiverGovernanceInsights();
+  gengiverObservatory();gengiverOFIDetail();gengiverEMIDetail();gengiverGovernanceActions();
+  gemState();
+  vis('Observatory beregnet \u2014 SSI: '+(ssi!=null?ssi:'\u2014')+' \u00b7 OFI: '+(ofiScore!=null?ofiScore:'\u2014')+' \u00b7 EMI: '+(emiScore!=null?emiScore:'\u2014'),'ok');
+}
+
+// Helper for leader map (used by OFI)
+function leaderMap_(){const m={};indsendelser.forEach(ind=>{const l=ind.data?.indsender?.pseudonym||'Unknown';const a=Object.values(ind.data?.initiativStatuser||{}).filter(s=>s==='Active').length;m[l]=(m[l]||0)+a});return m}
+
+// ══════════════════════════════════════════════════════════════
+// OBSERVATORY OVERVIEW RENDERING
+// ══════════════════════════════════════════════════════════════
+function gengiverObservatory(){
+  const alle=allePoster();
+  gi('obs-st-ind').textContent=indsendelser.length;
+  gi('obs-st-b').textContent=alle.b.length;gi('obs-st-f').textContent=alle.f.length;gi('obs-st-r').textContent=alle.r.length;
+
+  // Helper: render index hero ring
+  function renderHeroRing(prefix,score,circ){
+    const el=gi(prefix+'-val');const arc=gi(prefix+'-arc');
+    if(score==null){el.textContent='\u2014';el.style.color='var(--text3)';arc.setAttribute('stroke-dashoffset',circ);arc.setAttribute('stroke','var(--navy4)');return}
+    const col=score>=70?'#4ade80':score>=50?'#fb923c':'#f87171';
+    el.textContent=score;el.style.color=col;
+    arc.setAttribute('stroke',col);arc.setAttribute('stroke-dashoffset',circ-(circ*score/100));
+  }
+  renderHeroRing('obs-ssi',sidsteSSI?.score,213.6);
+  renderHeroRing('obs-ofi',sidsteOFI?.score,213.6);
+  renderHeroRing('obs-emi',sidsteEMI?.score,213.6);
+
+  // SSI subtitle
+  if(sidsteSSI?.score!=null){
+    gi('obs-ssi-sub').textContent='SSI '+sidsteSSI.score+'/100 \u00b7 Coverage: '+(sidsteSSI.coverage||'?')+' \u00b7 '+(sidsteSSI.score>=80?'Staerk execution':sidsteSSI.score>=60?'Acceptabel':' Kritisk');
+    gi('obs-ssi-drivers').innerHTML=sidsteSSI.top3Negative.map(c=>`<div class="ih-driver"><span style="min-width:90px;font-size:10px;color:var(--text3)">${c.label}</span><div class="ih-driver-bar"><div class="ih-driver-fill" style="width:${c.normalized||0}%;background:${(c.normalized||0)>=70?'#4ade80':(c.normalized||0)>=50?'#fb923c':'#f87171'}"></div></div><span style="font-family:'Courier New';font-size:10px;color:var(--text3)">${c.normalized!=null?c.normalized:'\u2014'}</span></div>`).join('');
+  }
+  // OFI subtitle + drivers
+  if(sidsteOFI?.score!=null){
+    gi('obs-ofi-sub').textContent='OFI '+sidsteOFI.score+'/100 \u00b7 Coverage: '+sidsteOFI.coverage+' \u00b7 '+(sidsteOFI.score>=70?'Lav friktion':sidsteOFI.score>=50?'Moderat friktion':'Hoj friktion');
+    gi('obs-ofi-drivers').innerHTML=sidsteOFI.components.map(c=>`<div class="ih-driver"><span style="min-width:90px;font-size:10px;color:var(--text3)">${c.label}</span><div class="ih-driver-bar"><div class="ih-driver-fill" style="width:${c.normalized||0}%;background:${(c.normalized||0)>=70?'#4ade80':(c.normalized||0)>=50?'#fb923c':'#f87171'}"></div></div><span style="font-family:'Courier New';font-size:10px;color:var(--text3)">${c.normalized!=null?c.normalized:'\u2014'}</span></div>`).join('');
+  }
+  // EMI subtitle + drivers
+  if(sidsteEMI?.score!=null){
+    gi('obs-emi-sub').textContent='EMI '+sidsteEMI.score+'/100 \u00b7 Coverage: '+sidsteEMI.coverage+' \u00b7 '+(sidsteEMI.score>=70?'Staerk momentum':sidsteEMI.score>=50?'Moderat momentum':'Svagt momentum');
+    gi('obs-emi-drivers').innerHTML=sidsteEMI.components.map(c=>`<div class="ih-driver"><span style="min-width:90px;font-size:10px;color:var(--text3)">${c.label}</span><div class="ih-driver-bar"><div class="ih-driver-fill" style="width:${c.normalized||0}%;background:${(c.normalized||0)>=70?'#4ade80':(c.normalized||0)>=50?'#fb923c':'#f87171'}"></div></div><span style="font-family:'Courier New';font-size:10px;color:var(--text3)">${c.normalized!=null?c.normalized:'\u2014'}</span></div>`).join('');
+  }
+
+  // EXECUTION THERMODYNAMICS
+  if(sidsteEMI?.score!=null&&sidsteOFI?.score!=null){
+    gi('thermo-panel').style.display='block';
+    const delta=Math.round((sidsteEMI.score-sidsteOFI.score)*10)/10;
+    const health=sidsteEMI.score-(100-sidsteOFI.score);
+    let interp='';
+    if(sidsteEMI.score>=70&&sidsteOFI.score>=70) interp='Organisationen har staerk fremdrift og lav friktion. Fasthold rytmen.';
+    else if(sidsteEMI.score<50&&sidsteOFI.score<50) interp='Baade momentum og friktionsniveau er kritisk. Risiko for strategisk stagnation. Direktion bor handle nu.';
+    else if(sidsteEMI.score<50) interp='Momentum er svagt. Selv med acceptabel friktion skabes der ikke tilstraekkelig fremdrift. Fokuser pa closure og beslutningshastighed.';
+    else if(sidsteOFI.score<50) interp='Friktion er hoj. Momentum kan ikke fastholdes hvis beslutninger eskaleres og ledere overbelastes. Reducer friktion forst.';
+    else interp='Moderat tilstand. Hold oje med om friktion stiger eller momentum falder i naeste periode.';
+    gi('thermo-interpretation').textContent=interp;
+
+    const signals=[];
+    if(sidsteEMI.score<50) signals.push({cls:'danger',txt:'Momentum under 50. Closure rate og milestone hit kraever fokus.'});
+    if(sidsteOFI.score<50) signals.push({cls:'danger',txt:'Friktion over kritisk niveau. Eskalering, overload eller abne friktioner bremser organisationen.'});
+    if(sidsteSSI?.score!=null&&sidsteSSI.score<60) signals.push({cls:'warn',txt:'SSI under 60. Samlet execution health er svaekket.'});
+    if(sidsteEMI.score>=70&&sidsteOFI.score>=70) signals.push({cls:'ok',txt:'Balanceret tilstand. Fasthold governance-rytmen.'});
+    gi('thermo-signals').innerHTML=signals.map(s=>`<div class="thermo-signal ${s.cls}">${s.txt}</div>`).join('');
+  }
+
+  // Governance alerts on overview
+  gengiverObsGovAlerts();
+}
+
+function gengiverObsGovAlerts(){
+  const el=gi('obs-gov-body');if(!el)return;
+  if(!sidsteKPI?.governanceInsights){el.innerHTML='<div class="tom-tilstand">Beregn alle indeks for at se alerts</div>';return}
+  const g=sidsteKPI.governanceInsights;const alerts=[];
+  if(g.overloadedLeaders.length) alerts.push({sev:'kritisk',txt:g.overloadedLeaders.length+' leder(e) overbelastet: '+g.overloadedLeaders.map(l=>l.leader+' ('+l.count+'/'+l.max+')').join(', ')});
+  if(g.behaviourRiskScore>50) alerts.push({sev:'kritisk',txt:'Behaviour Risk Score '+g.behaviourRiskScore+'/100 — '+g.behaviourRiskFactors.join('; ')});
+  if(g.decisionEscalationRate!=null&&g.decisionEscalationRate>30) alerts.push({sev:'advarsel',txt:'Decision Escalation Rate: '+g.decisionEscalationRate+'% ('+g.escalatedDecisions+'/'+g.totalDecisionsWithLevel+')'});
+  if(sidsteOFI?.score!=null&&sidsteOFI.score<50) alerts.push({sev:'kritisk',txt:'OFI kritisk lav ('+sidsteOFI.score+'/100). Organisatorisk friktion bremser eksekvering.'});
+  if(sidsteEMI?.score!=null&&sidsteEMI.score<50) alerts.push({sev:'advarsel',txt:'EMI svagt ('+sidsteEMI.score+'/100). Momentum falder — risiko for stagnation.'});
+  if(!alerts.length) alerts.push({sev:'ok',txt:'Ingen kritiske governance-alerts'});
+  el.innerHTML=alerts.map(a=>`<div style="padding:12px 16px;border-left:3px solid ${a.sev==='kritisk'?'#f87171':a.sev==='advarsel'?'#fb923c':'#4ade80'};border-radius:0 8px 8px 0;margin-bottom:8px;background:${a.sev==='kritisk'?'var(--rod-dim)':a.sev==='advarsel'?'var(--orange-dim)':'var(--gron-dim)'};font-size:13px;color:var(--text2);line-height:1.6"><span style="font-size:9px;text-transform:uppercase;letter-spacing:.1em;font-weight:700;color:${a.sev==='kritisk'?'#f87171':a.sev==='advarsel'?'#fb923c':'#4ade80'}">${a.sev==='ok'?'OK':a.sev.toUpperCase()}</span> ${a.txt}</div>`).join('');
+  gi('badge-governance').textContent=alerts.filter(a=>a.sev==='kritisk'||a.sev==='advarsel').length;
+}
+
+// ══════════════════════════════════════════════════════════════
+// OFI + EMI DETAIL PAGES
+// ══════════════════════════════════════════════════════════════
+function gengiverOFIDetail(){
+  if(!sidsteOFI){gi('ofi-hero-section').style.display='none';return}
+  gi('ofi-hero-section').style.display='block';
+  const o=sidsteOFI;const col=o.score>=70?'#4ade80':o.score>=50?'#fb923c':'#f87171';
+  gi('ofi-detail-body').innerHTML=`
+    <div style="text-align:center;margin-bottom:20px"><div style="font-family:var(--font-d);font-size:52px;font-weight:700;color:${col}">${o.score!=null?o.score:'\u2014'}</div><div style="font-size:12px;color:var(--text3)">OFI \u00b7 Coverage: ${o.coverage} \u00b7 ${o.score>=70?'Lav friktion':o.score>=50?'Moderat friktion':'Hoj friktion'}</div></div>
+    ${o.components.map(c=>{const n=c.normalized||0;const cc=n>=70?'#4ade80':n>=50?'#fb923c':'#f87171';return `<div class="explain-row"><span style="min-width:140px;color:var(--text2)">${c.label}</span><div class="explain-bar-wrap"><div class="explain-bar" style="width:${n}%;background:${cc}"></div></div><span style="min-width:36px;text-align:right;font-family:'Courier New';color:${cc}">${c.normalized!=null?n:'\u2014'}</span><span style="min-width:30px;text-align:right;font-size:10px;color:var(--text3)">${c.weight}%</span><span style="font-size:11px;color:var(--text3);margin-left:8px">${c.description}</span></div>`}).join('')}`;
+}
+function gengiverEMIDetail(){
+  if(!sidsteEMI){gi('emi-hero-section').style.display='none';return}
+  gi('emi-hero-section').style.display='block';
+  const e=sidsteEMI;const col=e.score>=70?'#4ade80':e.score>=50?'#fb923c':'#f87171';
+  gi('emi-detail-body').innerHTML=`
+    <div style="text-align:center;margin-bottom:20px"><div style="font-family:var(--font-d);font-size:52px;font-weight:700;color:${col}">${e.score!=null?e.score:'\u2014'}</div><div style="font-size:12px;color:var(--text3)">EMI \u00b7 Coverage: ${e.coverage} \u00b7 ${e.score>=70?'Staerk momentum':e.score>=50?'Moderat momentum':'Svagt momentum'}</div></div>
+    ${e.components.map(c=>{const n=c.normalized||0;const cc=n>=70?'#4ade80':n>=50?'#fb923c':'#f87171';return `<div class="explain-row"><span style="min-width:140px;color:var(--text2)">${c.label}</span><div class="explain-bar-wrap"><div class="explain-bar" style="width:${n}%;background:${cc}"></div></div><span style="min-width:36px;text-align:right;font-family:'Courier New';color:${cc}">${c.normalized!=null?n:'\u2014'}</span><span style="min-width:30px;text-align:right;font-size:10px;color:var(--text3)">${c.weight}%</span><span style="font-size:11px;color:var(--text3);margin-left:8px">${c.description}</span></div>`}).join('')}`;
+}
+
+// ══════════════════════════════════════════════════════════════
+// GOVERNANCE ACTIONS 2.0
+// ══════════════════════════════════════════════════════════════
+function gengiverGovernanceActions(){
+  const el=gi('gov-actions-body');if(!el)return;
+  if(!sidsteKPI||!sidsteSSI){el.innerHTML='<div class="tom-tilstand" style="padding:44px">Beregn alle indeks for at generere handlinger</div>';return}
+  const raw=sidsteKPI.raw;const gov=sidsteKPI.governanceInsights||{};
+  const actions={kritiskNu:[],kraeverBeslutning:[],kraeverAfklaring:[],kanOvervaages:[]};
+
+  // Generate actions from signals
+  if(raw.decisionSpeedDays!=null&&raw.decisionSpeedDays>30) actions.kritiskNu.push('Decision speed er for lav (median '+raw.decisionSpeedDays+' dage). Indfor 7-dages eskaleringsregel pa hoj-impact beslutninger.');
+  if(gov.overloadedLeaders?.length) actions.kritiskNu.push('Leader overload: '+gov.overloadedLeaders.map(l=>l.leader+' ('+l.count+' aktive, max '+l.max+')').join(', ')+'. Redistribuer eller reducer portefolje.');
+  if(raw.frictionLoadCount>7) actions.kritiskNu.push('Friction overload: '+raw.frictionLoadCount+' abne friktioner. Planlaeg dedikeret workshop med de 3 mest kritiske.');
+  if(raw.teamConfidence!=null&&raw.teamConfidence<2.5) actions.kritiskNu.push('Team confidence kritisk lav ('+raw.teamConfidence+'/5). Gennemfor 1:1 med alle teamledere inden 7 dage.');
+
+  if(raw.closureRate!=null&&raw.closureRate<60) actions.kraeverBeslutning.push('Closure rate kun '+raw.closureRate+'%. '+Math.round(100-raw.closureRate)+'% beslutninger er uafklarede. Kald ekstra beslutningsmode.');
+  if(raw.capacityRealism!=null&&raw.capacityRealism<70) actions.kraeverBeslutning.push('Kapacitetsrealisme '+raw.capacityRealism+'%. Pauser eller stop lavprioritets-initiativer nu.');
+  if(raw.riskExposureAvg>12) actions.kraeverBeslutning.push('Risk exposure hoj (gns. SxP='+raw.riskExposureAvg+'). Aktiver top 3 mitigationsplaner.');
+
+  if(gov.decisionEscalationRate!=null&&gov.decisionEscalationRate>20) actions.kraeverAfklaring.push('Eskaleringsrate '+gov.decisionEscalationRate+'%. Undersog om beslutningsrettigheder er klare nok pa operativt niveau.');
+  if(sidsteOFI?.score!=null&&sidsteOFI.score<60&&sidsteOFI.score>=40) actions.kraeverAfklaring.push('OFI moderat ('+sidsteOFI.score+'). Identificer de 2-3 storste friktionskilder og afklar ejerskab.');
+  if(raw.competenceReadiness!=null&&raw.competenceReadiness<3) actions.kraeverAfklaring.push('Competence readiness lav ('+raw.competenceReadiness+'/5). Afklar om der er kompetencegap eller kapacitetsproblem.');
+
+  if(sidsteEMI?.score!=null&&sidsteEMI.score>=60) actions.kanOvervaages.push('EMI moderat-staerkt ('+sidsteEMI.score+'). Fasthold nuvaerende cadence.');
+  if(sidsteSSI?.score!=null&&sidsteSSI.score>=70) actions.kanOvervaages.push('SSI staerkt ('+sidsteSSI.score+'). Dokumenter laering og best practices fra denne periode.');
+  if(raw.frictionLoadCount<=3) actions.kanOvervaages.push('Lavt friktionsniveau ('+raw.frictionLoadCount+'). Ingen akut handling nodvendig.');
+  if(!actions.kanOvervaages.length) actions.kanOvervaages.push('Fasthold governance-rytme og monitorer naesteperiode.');
+
+  const renderGroup=(label,cls,items)=>{
+    if(!items.length)return '';
+    return `<div class="gov-action-group"><div class="gov-action-label ${cls}">\u25CF ${label} (${items.length})</div>${items.map(a=>`<div class="gov-action-item ${cls==='kritisk-nu'?'red':cls==='kraever-beslutning'?'orange':cls==='kraever-afklaring'?'gold':'grey'}">${a}</div>`).join('')}</div>`;
+  };
+  el.innerHTML=
+    renderGroup('Kritisk nu',      'kritisk-nu',       actions.kritiskNu)+
+    renderGroup('Kraever beslutning','kraever-beslutning',actions.kraeverBeslutning)+
+    renderGroup('Kraever afklaring','kraever-afklaring', actions.kraeverAfklaring)+
+    renderGroup('Kan overvaages',  'kan-overvaages',    actions.kanOvervaages);
+}
+
+// ══════════════════════════════════════════════════════════════
+// EXISTING RENDERING FUNCTIONS (preserved from v6.2)
+// ══════════════════════════════════════════════════════════════
+function gengiverKPIGrid(){
+  if(!sidsteKPI)return;const raw=sidsteKPI.raw;
+  const items=[
+    {id:'closure_rate',label:'Closure Rate',val:raw.closureRate,enhed:'%'},
+    {id:'decision_speed',label:'Decision Speed',val:raw.decisionSpeedDays,enhed:' dage'},
+    {id:'capacity_realism',label:'Kapacitetsrealisme',val:raw.capacityRealism,enhed:'%'},
+    {id:'milestone_hit',label:'Milestone Hit Rate',val:raw.milestoneHitRate,enhed:'%'},
+    {id:'friction_load',label:'Abne friktioner',val:raw.frictionLoadCount,enhed:''},
+    {id:'risk_exposure',label:'Risk Exposure (gns.SxP)',val:raw.riskExposureAvg,enhed:''},
+    {id:'team_confidence',label:'Team Confidence',val:raw.teamConfidence,enhed:'/5'},
+    {id:'competence_ready',label:'Competence Readiness',val:raw.competenceReadiness,enhed:'/5'},
+  ];
+  gi('kpi-grid').innerHTML=items.map(d=>{const rag=ragForKPI(d.id,d.val);return `<div class="kpi-kort"><div class="rag-bar rag-${rag}"></div><div class="kpi-etiket">${d.label}</div><div class="kpi-val kv-${rag}">${d.val!=null?d.val+d.enhed:'\u2014'}</div><div class="kpi-enhed">${d.val==null?'Ingen data':''}</div></div>`}).join('');
+}
+
+function gengiverSSI(){
+  if(!sidsteSSI||sidsteSSI.score==null){gi('ssi-hero').style.display='none';return}
+  gi('ssi-hero').style.display='flex';const ssi=sidsteSSI.score;const color=ssi>=70?'#4ade80':ssi>=50?'#fb923c':'#f87171';
+  gi('ssi-val').textContent=ssi;gi('ssi-val').style.color=color;
+  const circ=326.7;gi('ssi-ring-arc').setAttribute('stroke',color);gi('ssi-ring-arc').setAttribute('stroke-dashoffset',circ-(circ*ssi/100));
+  gi('ssi-subtitle').textContent='SSI '+ssi+'/100 \u2014 '+(ssi>=80?'Staerk execution':ssi>=60?'Acceptabel \u2014 fokusomraader':'Kritisk \u2014 handling kraeves')+' \u00b7 Coverage: '+(sidsteSSI.coverage||'?');
+  gi('ssi-drivers').innerHTML=sidsteSSI.components.map(c=>{const n=c.normalized!=null?c.normalized:0;const col=n>=70?'#4ade80':n>=50?'#fb923c':'#f87171';return `<div class="ssi-driver"><span style="min-width:100px;font-size:10.5px;color:var(--text3)">${c.label}</span><div class="ssi-driver-bar"><div class="ssi-driver-fill" style="width:${n}%;background:${col}"></div></div><span style="min-width:34px;text-align:right;font-family:'Courier New';font-size:11.5px;color:${col}">${n!=null?n:'\u2014'}</span><span style="font-size:9.5px;color:var(--text3)">${c.weight}%</span></div>`}).join('');
+}
+
+function gengiverExplainSSI(){
+  if(!sidsteSSI)return;gi('explain-ssi-section').style.display='block';
+  const total=sidsteSSI.score||0;const cov=sidsteSSI.coverage||'?';
+  const compRows=sidsteSSI.components.map(c=>{const n=c.normalized!=null?c.normalized:0;const col=c.normalized!=null?(n>=70?'#4ade80':n>=50?'#fb923c':'#f87171'):'var(--text3)';const cd=c.coverageDetail;const sens=sidsteSSI.sensitivity?.[c.id];return `<div class="explain-row"><span style="min-width:130px;color:var(--text2)">${c.label}</span><span style="min-width:48px;text-align:right;font-family:'Courier New';font-size:10.5px;color:var(--text3)">${c.raw!=null?c.raw:'\u2014'}</span><div class="explain-bar-wrap"><div class="explain-bar" style="width:${n}%;background:${col}"></div></div><span style="min-width:34px;text-align:right;font-family:'Courier New';color:${col}">${c.normalized!=null?n:'\u2014'}</span><span style="min-width:30px;text-align:right;font-size:10px;color:var(--text3)">${c.weight}%</span><span style="min-width:38px;text-align:right;font-family:'Courier New';color:var(--gold);font-size:11px">+${c.contribution}</span><span style="min-width:38px;text-align:right;font-family:'Courier New';color:#f87171;font-size:10px">\u2191${c.pressure}</span><span style="min-width:52px;text-align:right;font-size:9px;color:var(--text3)">${cd?cd.count+'/'+cd.total:''}</span><span style="min-width:42px;text-align:right;font-size:9px;color:var(--text3)">${sens?.deltaUp!=null?(sens.deltaUp>0?'+':'')+sens.deltaUp:'\u2014'}</span></div>`}).join('');
+  gi('explain-ssi-body').innerHTML=`<div style="font-family:'Courier New';font-size:11px;color:var(--text3);margin-bottom:8px">SSI = ${total}</div><div style="font-size:10.5px;color:var(--text3);margin-bottom:14px;display:flex;gap:16px;flex-wrap:wrap"><span>Coverage: <strong style="color:var(--gold)">${cov}</strong></span><span>Schema: <strong>v${SCHEMA}</strong></span></div>${compRows}<div id="explain-config-fp" style="margin-top:14px;font-size:9.5px;color:var(--text3);font-family:'Courier New'">Config fingerprint: loading...</div>`;
+  computeConfigFingerprint().then(fp=>{const el=gi('explain-config-fp');if(el) el.textContent='Config fingerprint: '+fp.substring(0,16)+'\u2026'});
+  const driverHTML=(list,col,metric)=>list.map((c,i)=>`<div style="padding:7px 0;border-bottom:1px solid var(--brd);font-size:13px"><span style="color:${col};font-family:var(--font-d);font-size:20px">${i+1}.</span> <span style="color:var(--text)">${c.label}</span><span style="float:right;font-family:'Courier New';color:${col}">${metric==='pressure'?'pressure: '+c.pressure:'contribution: '+c.contribution}</span>${c.why?'<div style="font-size:11px;color:var(--text3);margin-top:2px;margin-left:24px">'+c.why+'</div>':''}</div>`).join('');
+  gi('top3-pos').innerHTML=driverHTML(sidsteSSI.top3Positive,'#4ade80','contribution');
+  gi('top3-neg').innerHTML=driverHTML(sidsteSSI.top3Negative,'#f87171','pressure');
+}
+
+function gengiverGovernanceInsights(){
+  const el=gi('gov-insights');if(!el)return;
+  const g=sidsteKPI?.governanceInsights;if(!g){el.innerHTML='<div style="padding:12px;color:var(--text3);font-size:13px;">Beregn indeks forst</div>';return}
+  el.innerHTML=`<div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px"><div class="kpi-kort" style="padding:14px"><div style="font-size:10.5px;text-transform:uppercase;color:var(--text3);letter-spacing:.08em;font-weight:600">Decision Escalation Rate</div><div style="font-size:26px;font-family:var(--font-d);color:${g.decisionEscalationRate!=null&&g.decisionEscalationRate>30?'#f87171':'#4ade80'}">${g.decisionEscalationRate!=null?g.decisionEscalationRate+'%':'\u2014'}</div><div style="font-size:10.5px;color:var(--text3)">${g.escalatedDecisions}/${g.totalDecisionsWithLevel} decisions at Executive/Board</div></div><div class="kpi-kort" style="padding:14px"><div style="font-size:10.5px;text-transform:uppercase;color:var(--text3);letter-spacing:.08em;font-weight:600">Behaviour Risk Score</div><div style="font-size:26px;font-family:var(--font-d);color:${g.behaviourRiskScore>50?'#f87171':g.behaviourRiskScore>25?'#fb923c':'#4ade80'}">${g.behaviourRiskScore}/100</div><div style="font-size:10.5px;color:var(--text3)">${g.behaviourRiskFactors.length?g.behaviourRiskFactors.join('; '):'Ingen risikofaktorer'}</div></div></div>${g.overloadedLeaders.length?'<div style="padding:10px 14px;background:var(--rod-dim);border-left:3px solid #f87171;border-radius:5px;margin-bottom:10px;font-size:12px;color:#f87171;">\u26A0 Leader overload: '+g.overloadedLeaders.map(l=>l.leader+' ('+l.count+'/'+l.max+')').join(', ')+'</div>':''}`;
+}
+
+function gengiverTop3(){
+  if(!sidsteKPI)return;
+  const g=(id,liste)=>{const el=gi(id);if(!liste?.length){el.innerHTML='<li class="tom-tilstand">Ingen kritiske poster</li>';return}el.innerHTML=liste.map((item,i)=>`<li style="padding:9px 0;border-bottom:1px solid var(--brd);display:flex;gap:10px;align-items:flex-start"><span style="font-family:var(--font-d);font-size:26px;color:var(--gold);min-width:30px;line-height:1">${i+1}</span><div><div style="font-size:13px;color:var(--text)">${item.tekst}</div><div style="font-size:11px;color:var(--text3);margin-top:2px">${item.sub}</div></div></li>`).join('')};
+  g('top3-b',sidsteKPI.top3Beslutninger);g('top3-f',sidsteKPI.top3Friktioner);g('top3-r',sidsteKPI.top3Risici);
+}
+
+function gengiverMaster(){
+  const alle=allePoster();
+  gi('st-ind').textContent=indsendelser.length;gi('st-b').textContent=alle.b.length;gi('st-f').textContent=alle.f.length;gi('st-r').textContent=alle.r.length;
+  gi('overblik-meta').textContent=indsendelser.length+' indsendere \u00b7 '+(alle.b.length+alle.f.length+alle.r.length)+' poster';
+  const fb=v('filter-b')||'';const bR=alle.b.filter(r=>!fb||r.status===fb);
+  gi('m-b').innerHTML=bR.length?bR.map(b=>`<tr><td style="font-family:'Courier New';font-size:10.5px;color:var(--text3)">${b.id}</td><td><span style="font-size:10px;font-family:'Courier New';background:var(--navy5);color:var(--text2);padding:2px 7px;border-radius:3px">${b._ind}</span></td><td>${b.datoRejst||'\u2014'}</td><td style="color:var(--text)">${b.ansvarlig||'<span style="color:#f87171">MANGLER</span>'}</td><td>${b.frist||'\u2014'}</td><td style="max-width:160px;font-size:12px">${b.dod?(b.dod.substring(0,50)+(b.dod.length>50?'\u2026':'')):'<span style="color:#f87171">MANGLER</span>'}</td><td><span class="s-badge s-${(b.status||'').toLowerCase().replace(' ','-')}">${b.status||'\u2014'}</span></td><td>${b.pavirkning||'\u2014'}</td><td>${b.relateretInitiativ||'\u2014'}</td></tr>`).join(''):'<tr><td colspan="9" class="tom-tilstand">Ingen beslutninger</td></tr>';
+  gi('m-f').innerHTML=alle.f.length?alle.f.map(f=>`<tr><td style="font-family:'Courier New';font-size:10.5px;color:var(--text3)">${f.id}</td><td><span style="font-size:10px;font-family:'Courier New';background:var(--navy5);color:var(--text2);padding:2px 7px;border-radius:3px">${f._ind}</span></td><td>${f.datoLogget||'\u2014'}</td><td style="color:var(--text)">${f.omraadeA||'\u2014'}</td><td style="color:var(--text)">${f.omraadeB||'\u2014'}</td><td style="max-width:180px;font-size:12px">${(f.problem||'').substring(0,60)}${(f.problem||'').length>60?'\u2026':''}</td><td>${f.ansvarlig||'\u2014'}</td><td><span class="s-badge s-${(f.status||'').toLowerCase().replace(' ','-')}">${f.status||'\u2014'}</span></td><td>${f.impactScore||f.pavirkning||'\u2014'}</td></tr>`).join(''):'<tr><td colspan="9" class="tom-tilstand">Ingen friktioner</td></tr>';
+  gi('m-r').innerHTML=alle.r.length?alle.r.map(r=>{const sc=(r.sandsynlighed||0)*(r.pavirkning||0);const cls=sc>=16?'rr':sc>=9?'ro':'rg';return `<tr><td style="font-family:'Courier New';font-size:10.5px;color:var(--text3)">${r.id}</td><td><span style="font-size:10px;font-family:'Courier New';background:var(--navy5);color:var(--text2);padding:2px 7px;border-radius:3px">${r._ind}</span></td><td>${r.datoLogget||'\u2014'}</td><td style="max-width:180px;font-size:12px">${(r.risikoBeskrivelse||'').substring(0,65)}${(r.risikoBeskrivelse||'').length>65?'\u2026':''}</td><td>${r.ansvarlig||'\u2014'}</td><td>${r.sandsynlighed||'\u2014'}</td><td>${r.pavirkning||'\u2014'}</td><td><span class="rag-prik ${cls}"></span>${sc||'\u2014'}</td><td><span class="s-badge s-${(r.status||'').toLowerCase().replace(' ','-')}">${r.status||'\u2014'}</span></td></tr>`}).join(''):'<tr><td colspan="9" class="tom-tilstand">Ingen risici</td></tr>';
+}
+
+// ── AI SPARRING ─────────────────────────────────────────────
+function korSparring(){
+  if(!indsendelser.length){vis('Ingen data','fejl');return}
+  const fund=[];const idag=new Date();idag.setHours(0,0,0,0);
+  const dage=(d1,d2)=>Math.round((new Date(d1)-new Date(d2))/86400000);let okN=0;
+  indsendelser.forEach(item=>{const d=item.data;const ind=d.indsender?.pseudonym||item.filnavn;
+    (d.beslutningsLog||[]).forEach(b=>{let fe=false;if(!b.ansvarlig){fund.push({sev:'kritisk',tekst:'Beslutning mangler ansvarlig',kilde:ind+' \u00b7 '+b.id,sp:'<em>Hvem ejer beslutningen?</em>'});fe=true}if(!b.frist){fund.push({sev:'kritisk',tekst:'Beslutning mangler frist',kilde:ind+' \u00b7 '+b.id,sp:'<em>Hvornaar skal beslutningen vaere taget?</em>'});fe=true}if(!b.dod||b.dod.length<15)fund.push({sev:'advarsel',tekst:'DoD utilstraekkelig',kilde:ind+' \u00b7 '+b.id,sp:'<em>Hvad er det observable kriterium?</em>'});if(b.pavirkning==='Hoj'&&b.status==='Afventer'&&b.datoRejst&&dage(idag,b.datoRejst)>14)fund.push({sev:'kritisk',tekst:'Hoj-impact afventer '+dage(idag,b.datoRejst)+' dage',kilde:ind+' \u00b7 '+b.id,sp:'<em>Hvad er blokeringen?</em>'});if(!fe)okN++});
+    (d.friktionsLog||[]).forEach(f=>{let fe=false;if(!f.ansvarlig){fund.push({sev:'kritisk',tekst:'Friktion mangler ansvarlig',kilde:ind+' \u00b7 '+f.id,sp:'<em>Hvem ejer loesningen?</em>'});fe=true}if(f.omraadeA&&f.omraadeB&&f.omraadeA.toLowerCase()===f.omraadeB.toLowerCase()){fund.push({sev:'kritisk',tekst:'OmraadeA = OmraadeB',kilde:ind+' \u00b7 '+f.id,sp:'<em>Friktioner kraever to forskellige funktioner.</em>'});fe=true}if(f.datoLogget&&dage(idag,f.datoLogget)>30&&f.status!=='Lukket')fund.push({sev:'advarsel',tekst:'Friktion aben i '+dage(idag,f.datoLogget)+' dage',kilde:ind+' \u00b7 '+f.id,sp:'<em>Klar til eskalering?</em>'});if(!fe)okN++});
+    (d.risikoLog||[]).forEach(r=>{let fe=false;const sc=(r.sandsynlighed||0)*(r.pavirkning||0);if(!r.ansvarlig){fund.push({sev:'kritisk',tekst:'Risiko mangler ansvarlig',kilde:ind+' \u00b7 '+r.id,sp:'<em>Hvem ejer risikoen?</em>'});fe=true}if(sc>=12&&(!r.mitigationsPlan||r.mitigationsPlan.length<20))fund.push({sev:'kritisk',tekst:'Hoj SxP='+sc+' uden mitigationsplan',kilde:ind+' \u00b7 '+r.id,sp:'<em>Hvem gor hvad inden hvornaar?</em>'});if(!r.tidligtSignal)fund.push({sev:'advarsel',tekst:'Mangler tidligt signal',kilde:ind+' \u00b7 '+r.id,sp:'<em>Hvad er forste tegn pa materialisering?</em>'});if(!fe)okN++});
+    if(!(d.beslutningsLog?.length||d.friktionsLog?.length||d.risikoLog?.length))fund.push({sev:'advarsel',tekst:'Tom indsendelse',kilde:ind,sp:'<em>Bekraeft ingen poster.</em>'})});
+  const kr=fund.filter(f=>f.sev==='kritisk').length,av=fund.filter(f=>f.sev==='advarsel').length,inf=fund.filter(f=>f.sev==='info').length;
+  gi('badge-sparring').textContent=kr+av;gi('sparring-resume').style.display='block';gi('sp-kr').textContent=kr;gi('sp-av').textContent=av;gi('sp-in').textContent=inf;gi('sp-ok').textContent=okN;
+  gi('sparring-liste').innerHTML=fund.length?fund.map(f=>`<div class="sparring-item"><div class="sparring-hoved ${f.sev}"><span class="sp-badge sp-${f.sev}">${f.sev==='kritisk'?'KRITISK':f.sev==='advarsel'?'ADVARSEL':'INFO'}</span><span class="sp-tekst">${f.tekst}</span><span class="sp-kilde">${f.kilde}</span></div><div class="sparring-body"><div class="sp-sp">\u2192 ${f.sp}</div></div></div>`).join(''):'<div style="text-align:center;padding:44px;color:#4ade80;font-size:15px">\u2713 Ingen problemer \u2014 klar til publicering</div>';
+  vis('Analyse: '+kr+' kritiske \u00b7 '+av+' advarsler','ok');
+}
+
+// ── CLOSURE PULSE ───────────────────────────────────────────
+function genererPulse(){
+  if(!indsendelser.length){vis('Ingen data','fejl');return}
+  const alle=allePoster();const idag=new Date();idag.setHours(0,0,0,0);
+  const pending=alle.b.filter(b=>b.status==='Afventer'||b.status==='Eskaleret').sort((a,b)=>{const ia=a.pavirkning==='Hoj'?0:1;const ib=b.pavirkning==='Hoj'?0:1;return ia!==ib?ia-ib:new Date(a.datoRejst||0)-new Date(b.datoRejst||0)}).slice(0,3);
+  const abne=alle.f.filter(f=>['Aben','I gang','\u00c5ben'].includes(f.status)).sort((a,b)=>new Date(a.datoLogget||0)-new Date(b.datoLogget||0));
+  const lateS=[...alle.r].filter(r=>r.status!=='Lukket'&&r.status!=='Accepteret'&&(r.sandsynlighed||0)*(r.pavirkning||0)>=9).sort((a,b)=>((b.sandsynlighed||0)*(b.pavirkning||0))-((a.sandsynlighed||0)*(a.pavirkning||0)))[0]||null;
+  gi('pulse-ingen').style.display='none';gi('pulse-output').style.display='block';
+  gi('pulse-dato').textContent=idag.toLocaleDateString('da-DK',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
+  gi('pulse-naeste').textContent=new Date(idag.getTime()+604800000).toLocaleDateString('da-DK',{day:'numeric',month:'long'});
+  gi('pulse-totals').textContent=alle.b.length+' B \u00b7 '+alle.f.length+' F \u00b7 '+alle.r.length+' R'+(sidsteSSI?' \u00b7 SSI: '+sidsteSSI.score:'');
+  gi('pulse-b').innerHTML=pending.length?pending.map((b,i)=>{const dr=b.datoRejst?Math.round((idag-new Date(b.datoRejst))/86400000):null;return `<div class="pulse-item"><strong style="color:var(--text)">${i+1}. ${b.dod?.substring(0,70)||b.id}</strong><div class="pi-meta">Ansvarlig: ${b.ansvarlig||'MANGLER'} \u00b7 Frist: ${b.frist||'MANGLER'}${dr!=null?' \u00b7 Afventet: <strong style="color:#fb923c">'+dr+' dage</strong>':''} \u00b7 ${b._ind}</div></div>`}).join(''):'<div class="pulse-tom">Ingen pending \u2713</div>';
+  gi('pulse-f').innerHTML=abne[0]?`<div class="pulse-item"><strong style="color:var(--text)">${abne[0].problem?.substring(0,80)||abne[0].id}</strong><div class="pi-meta">${abne[0].omraadeA}\u2194${abne[0].omraadeB} \u00b7 Aben i <strong style="color:#fb923c">${abne[0].datoLogget?Math.round((idag-new Date(abne[0].datoLogget))/86400000):'?'} dage</strong></div>${abne.length>1?'<div class="pi-meta">+'+(abne.length-1)+' andre abne</div>':''}</div>`:'<div class="pulse-tom">Ingen abne \u2713</div>';
+  if(lateS){const sc=(lateS.sandsynlighed||0)*(lateS.pavirkning||0);gi('pulse-r').innerHTML=`<div class="pulse-item"><strong style="color:${sc>=16?'#f87171':'var(--text)'}">${lateS.risikoBeskrivelse?.substring(0,75)||lateS.id}</strong><div class="pi-meta">SxP=<strong style="color:${sc>=16?'#f87171':'#fb923c'}">${sc}</strong> \u00b7 ${lateS.ansvarlig||'MANGLER'}</div></div>`}else gi('pulse-r').innerHTML='<div class="pulse-tom">Ingen late surprises \u2713</div>';
+  vis('Closure Pulse genereret','ok');
+}
+
+// ── 1-PAGER RAPPORT ─────────────────────────────────────────
+function genererRapport(){
+  if(!indsendelser.length){vis('Ingen data','fejl');return}
+  if(!sidsteKPI)beregnKPIer();
+  const std=v('rp-standard')||'(Ingen maaneds-standard angivet)';const per=v('rp-periode')||'\u2014';const udg=v('rp-udgiver')||'Execution Governance Partner';
+  const fort=v('rp-fortr')||'Intern \u2014 Fortrolig';const komm=v('rp-komm');const dato=new Date().toLocaleDateString('da-DK',{day:'numeric',month:'long',year:'numeric'});
+  const alle=allePoster();const raw=sidsteKPI.raw;const ssi=sidsteSSI;const ofi=sidsteOFI;const emi=sidsteEMI;
+  const ragHex=(id,val)=>{const r=ragForKPI(id,val);return{gron:'#1a7a3a',orange:'#d45f00',rod:'#C0392B',graa:'#666'}[r]||'#666'};
+  const ragBg=(id,val)=>{const r=ragForKPI(id,val);return{gron:'#f0faf4',orange:'#fef7f0',rod:'#fdf2f2',graa:'#f7f7f7'}[r]||'#f7f7f7'};
+  const ssiColor=ssi?.score>=70?'#1a7a3a':ssi?.score>=50?'#d45f00':'#C0392B';
+  const ofiColor=ofi?.score>=70?'#1a7a3a':ofi?.score>=50?'#d45f00':'#C0392B';
+  const emiColor=emi?.score>=70?'#1a7a3a':emi?.score>=50?'#d45f00':'#C0392B';
+
+  const kpiItems=[{id:'closure_rate',l:'Closure Rate',v:raw.closureRate,e:'%'},{id:'decision_speed',l:'Decision Speed',v:raw.decisionSpeedDays,e:' dage'},{id:'capacity_realism',l:'Kapacitetsrealisme',v:raw.capacityRealism,e:'%'},{id:'milestone_hit',l:'Milestone Hit Rate',v:raw.milestoneHitRate,e:'%'},{id:'friction_load',l:'Abne friktioner',v:raw.frictionLoadCount,e:''},{id:'risk_exposure',l:'Risk Exposure',v:raw.riskExposureAvg,e:''},{id:'team_confidence',l:'Team Confidence',v:raw.teamConfidence,e:'/5'},{id:'competence_ready',l:'Competence Readiness',v:raw.competenceReadiness,e:'/5'}];
+  const kpiR=kpiItems.map(d=>`<tr><td style="padding:7px 10px;border:1px solid #ddd;font-size:12px">${d.l}</td><td style="padding:7px 10px;border:1px solid #ddd;text-align:center;font-weight:700;color:${ragHex(d.id,d.v)};background:${ragBg(d.id,d.v)};font-size:14px">${d.v!=null?d.v+d.e:'\u2014'}</td></tr>`).join('');
+  const top3H=liste=>!liste?.length?'<p style="color:#999;font-size:12px;font-style:italic">Ingen</p>':liste.map((item,i)=>`<div style="display:flex;gap:10px;padding:7px 0;border-bottom:1px solid #eee"><span style="font-family:Georgia;font-size:22px;color:#C9A84C;min-width:24px">${i+1}</span><div><div style="font-size:12px">${item.tekst}</div><div style="font-size:10px;color:#888;margin-top:2px">${item.sub}</div></div></div>`).join('');
+  const anbH=ssi?.anbefalinger?ssi.anbefalinger.map((a,i)=>`<div style="display:flex;gap:10px;padding:8px 0;border-bottom:1px solid #eee"><span style="font-family:Georgia;font-size:20px;color:#C9A84C">${i+1}</span><div style="font-size:12px;line-height:1.6">${a}</div></div>`).join(''):'';
+
+  const html=`<div style="font-family:Georgia,'Times New Roman',serif;padding:32px;max-width:760px;margin:0 auto">
+    <div style="border-bottom:3px solid #0C1829;padding-bottom:14px;margin-bottom:20px;display:flex;justify-content:space-between;align-items:flex-end"><div><div style="font-size:9px;text-transform:uppercase;letter-spacing:.12em;color:#888;margin-bottom:4px">${fort} \u00b7 Genereret ${dato}</div><div style="font-size:24px;font-weight:700;color:#0C1829">Strategy Execution Observatory\u2122</div><div style="font-size:13px;color:#444;margin-top:4px">${per} \u00b7 ${udg}</div></div><div style="font-family:'Courier New';font-size:9px;color:#888;text-align:right">Observatory v${SCHEMA}<br>Schema v${SCHEMA}</div></div>
+    <div style="background:#fff8e6;border-left:4px solid #C9A84C;padding:12px 16px;margin-bottom:20px;border-radius:0 6px 6px 0"><div style="font-size:9px;text-transform:uppercase;letter-spacing:.12em;color:#C9A84C;margin-bottom:6px">\u2605 Maaneds-standard</div><div style="font-size:13px;color:#0C1829;font-style:italic;line-height:1.6">${std}</div></div>
+    ${komm?`<div style="background:#f5f5f5;border-left:2px solid #ccc;padding:10px 14px;margin-bottom:16px;font-size:12px;color:#555;line-height:1.7">${komm}</div>`:''}
+    <!-- TRIFECTA: SSI + OFI + EMI -->
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;margin-bottom:20px">
+      <div style="text-align:center;border:2px solid ${ssiColor};border-radius:10px;padding:16px"><div style="font-size:9px;text-transform:uppercase;letter-spacing:.1em;color:#888">SSI</div><div style="font-size:42px;font-weight:700;color:${ssiColor};font-family:Georgia">${ssi?.score!=null?ssi.score:'\u2014'}</div><div style="font-size:10px;color:#888">${ssi?.score>=80?'Staerk':ssi?.score>=60?'Acceptabel':'Kritisk'} \u00b7 ${ssi?.coverage||'?'}</div></div>
+      <div style="text-align:center;border:2px solid ${ofiColor};border-radius:10px;padding:16px"><div style="font-size:9px;text-transform:uppercase;letter-spacing:.1em;color:#888">OFI</div><div style="font-size:42px;font-weight:700;color:${ofiColor};font-family:Georgia">${ofi?.score!=null?ofi.score:'\u2014'}</div><div style="font-size:10px;color:#888">${ofi?.score>=70?'Lav friktion':ofi?.score>=50?'Moderat':'Hoj friktion'} \u00b7 ${ofi?.coverage||'?'}</div></div>
+      <div style="text-align:center;border:2px solid ${emiColor};border-radius:10px;padding:16px"><div style="font-size:9px;text-transform:uppercase;letter-spacing:.1em;color:#888">EMI</div><div style="font-size:42px;font-weight:700;color:${emiColor};font-family:Georgia">${emi?.score!=null?emi.score:'\u2014'}</div><div style="font-size:10px;color:#888">${emi?.score>=70?'Staerk momentum':emi?.score>=50?'Moderat':'Svagt'} \u00b7 ${emi?.coverage||'?'}</div></div>
+    </div>
+    <div style="margin-bottom:20px"><div style="font-size:9px;text-transform:uppercase;letter-spacing:.1em;color:#888;margin-bottom:8px;border-bottom:1px solid #ddd;padding-bottom:4px">A \u2014 Execution Health Scorecard (8 KPI'er)</div><table style="width:100%;border-collapse:collapse">${kpiR}</table></div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-bottom:20px"><div><div style="font-size:9px;text-transform:uppercase;letter-spacing:.1em;color:#888;margin-bottom:8px;border-bottom:1px solid #ddd;padding-bottom:4px">B \u2014 Top 3 beslutninger</div>${top3H(sidsteKPI.top3Beslutninger)}</div><div><div style="font-size:9px;text-transform:uppercase;letter-spacing:.1em;color:#888;margin-bottom:8px;border-bottom:1px solid #ddd;padding-bottom:4px">C \u2014 Top 3 risici</div>${top3H(sidsteKPI.top3Risici)}</div></div>
+    <div style="margin-bottom:20px"><div style="font-size:9px;text-transform:uppercase;letter-spacing:.1em;color:#888;margin-bottom:8px;border-bottom:1px solid #ddd;padding-bottom:4px">D \u2014 Top 3 friktioner</div>${top3H(sidsteKPI.top3Friktioner)}</div>
+    <div style="margin-bottom:20px;background:#f9f9f9;border:1px solid #eee;border-radius:6px;padding:14px;border-left:4px solid #C9A84C"><div style="font-size:9px;text-transform:uppercase;letter-spacing:.1em;color:#C9A84C;margin-bottom:10px">E \u2014 3 Anbefalinger</div>${anbH}</div>
+    <div style="margin-top:20px;padding-top:12px;border-top:1px solid #ddd;font-size:10px;color:#aaa;display:flex;justify-content:space-between"><span>Strategy Execution Observatory\u2122 \u00b7 ${fort}</span><span>v${SCHEMA} \u00b7 SSI ${ssi?.score!=null?ssi.score:'\u2014'} \u00b7 OFI ${ofi?.score!=null?ofi.score:'\u2014'} \u00b7 EMI ${emi?.score!=null?emi.score:'\u2014'} \u00b7 ${dato}</span></div>
+  </div>`;
+  gi('rapport-preview').innerHTML=html;gi('rapport-preview').style.cssText='background:#fff;border-radius:10px;overflow:hidden;';
+  window._sidsteRapportHTML=html;
+  computeConfigFingerprint().then(fp=>{window._configFingerprint=fp});
+  vis('1-pager genereret med SSI + OFI + EMI + drivers + anbefalinger','ok');
+}
+
+// ── SNAPSHOTS ───────────────────────────────────────────────
+async function publicerSnapshot(){
+  if(!window._sidsteRapportHTML){vis('Generer rapport inden publicering','fejl');return}
+  if(!sidsteSSI?.sensitivity||Object.keys(sidsteSSI.sensitivity).length===0){vis('Sensitivity missing. Beregn KPI+SSI forst.','fejl');return}
+  const configFP=await computeConfigFingerprint();
+  const auditEntry={handling:'Snapshot publiceret',tidspunkt:new Date().toISOString(),schemaVersion:SCHEMA,indsendelser:indsendelser.length,ssiScore:sidsteSSI?.score,ofiScore:sidsteOFI?.score,emiScore:sidsteEMI?.score,configFingerprint:configFP};
+  const prevHash=snapshots.length>0?(snapshots[snapshots.length-1].latestHash||'GENESIS'):'GENESIS';
+  const newHash=await computeAuditHash(prevHash,auditEntry);auditEntry.hash=newHash;
+  const rawInputHash=await computeRawInputHash();
+  const snapshotId='SNAP-'+Date.now().toString(36).toUpperCase();
+  const snap={id:snapshotId,snapshotId,version:snapshots.length+1,schemaVersion:SCHEMA,createdAt:new Date().toISOString(),periode:v('rp-periode')||'\u2014',standard:v('rp-standard')||'',tidspunkt:new Date().toISOString(),rawInputs:indsendelser.map(i=>i.data),beregnede:sidsteKPI,ssi:sidsteSSI,ofi:sidsteOFI,emi:sidsteEMI,kpiDefinitions:KPI_DEFINITIONS,ssiWeights:ops.ssiWeights||DEFAULT_SSI_WEIGHTS,ofiWeights:OFI_WEIGHTS,emiWeights:EMI_WEIGHTS,normalizationRules:NORMALIZATION_RULES,calculationMeta:sidsteKPI?.calculationMeta||null,coverage:{overall:sidsteSSI?.coverage||null,perKpi:sidsteKPI?.dataCoverage||null,ofi:sidsteOFI?.coverage||null,emi:sidsteEMI?.coverage||null},sensitivity:sidsteSSI?.sensitivity||null,configFingerprint:configFP,strategyTargetsImpact:computeStrategyTargetsImpact(),rapportHTML:window._sidsteRapportHTML,rawInputHash,governanceInsights:sidsteKPI?.governanceInsights||null,auditTrail:auditEntry,auditTrailHash:newHash,latestHash:newHash,prevHash};
+  snapshots.push(snap);gi('badge-snapshots').textContent=snapshots.length;gi('snap-meta').textContent=snapshots.length+' snapshots';gi('sf-snap').textContent=snapshots.length;
+  gengiverSnapPills();opdaterSidebar();gemState();opdaterEksMeta();
+  vis('Snapshot v'+snap.version+' publiceret \u2014 '+snap.id+' \u00b7 Hash: '+newHash.substring(0,12)+'\u2026','ok');
+}
+function gengiverSnapPills(){const el=gi('snap-pills');if(!snapshots.length){el.innerHTML='<div class="tom-tilstand">Ingen snapshots endnu</div>';return}el.innerHTML=[...snapshots].reverse().map(s=>`<span class="snap-pill ${s.id===aktivSnapId?'akt':''}" onclick="visSnap('${s.id}')">v${s.version} \u00b7 ${s.periode}${s.ssi?.score!=null?' \u00b7 SSI:'+s.ssi.score:''}</span>`).join('');if(!aktivSnapId&&snapshots.length)visSnap(snapshots[snapshots.length-1].id)}
+function visSnap(id){aktivSnapId=id;const snap=snapshots.find(s=>s.id===id);if(!snap)return;gengiverSnapPills();gi('snap-vis').innerHTML=`<div style="padding:10px 16px;background:#f9f9f9;border-bottom:1px solid #ddd;font-family:'Courier New';font-size:10px;color:#888">${snap.snapshotId||snap.id} \u00b7 v${snap.version} \u00b7 Schema v${snap.schemaVersion||'?'} \u00b7 ${new Date(snap.tidspunkt).toLocaleString('da-DK')}${snap.ssi?.score!=null?' \u00b7 SSI: '+snap.ssi.score:''}${snap.ofi?.score!=null?' \u00b7 OFI: '+snap.ofi.score:''}${snap.emi?.score!=null?' \u00b7 EMI: '+snap.emi.score:''}${snap.latestHash?' \u00b7 Hash: '+snap.latestHash.substring(0,12)+'\u2026':''}</div><div>${snap.rapportHTML}</div>`}
+
+// ── OPSAETNING ──────────────────────────────────────────────
+function gengiverTaerskler(){const el=gi('taerskel-grid');if(!el)return;el.innerHTML=KPI_DEFINITIONS.map(d=>{const t=ops.taerskler?.[d.id]||d.thresholds;const dir=d.direction==='lower_better';return `<div class="taerskel-item"><div class="ti-label">${d.label} (${d.unit})</div><div class="ti-inputs"><label>Gron ${dir?'\u2264':'\u2265'}</label><input type="number" id="t-${d.id}-g" value="${t.green}" min="0" max="999"><label>Orange ${dir?'\u2264':'\u2265'}</label><input type="number" id="t-${d.id}-o" value="${t.orange}" min="0" max="999"></div></div>`}).join('')}
+function gengiverWeights(){const el=gi('weight-grid');if(!el)return;const w=ops.ssiWeights||DEFAULT_SSI_WEIGHTS;el.innerHTML=KPI_DEFINITIONS.map(d=>`<div class="weight-item"><label>${d.label}</label><input type="number" id="w-${d.id}" value="${w[d.id]||0}" min="0" max="100" onchange="opdaterWeightSum()"><span style="font-size:10.5px;color:var(--text3)">%</span></div>`).join('');opdaterWeightSum()}
+function opdaterWeightSum(){const w=hentWeights();const sum=Object.values(w).reduce((s,v)=>s+v,0);const el=gi('weight-sum');el.textContent='Sum: '+sum+'%';el.style.color=sum===100?'#4ade80':'#f87171'}
+function gemOpsaetning(){ops.orgId=v('ops-org-id');ops.orgNavn=v('ops-org-navn');ops.konsulent=v('ops-konsulent');ops.intern=v('ops-intern');ops.beskr=v('ops-beskr');ops.taerskler=hentTaerskler();ops.ssiWeights=hentWeights();const sum=Object.values(ops.ssiWeights).reduce((s,v)=>s+v,0);if(sum!==100){vis('SSI-vaegting skal summere til 100% (nu: '+sum+'%)','fejl');return}gemState();vis('Opsaetning gemt','ok')}
+
+// ── EKSPORT ─────────────────────────────────────────────────
+function opdaterEksMeta(){gi('eks-sn').textContent=snapshots.length;gi('eks-in').textContent=indsendelser.length;gi('eks-tid').textContent=new Date().toLocaleString('da-DK')}
+
+async function eksporterBundle(){
+  if(!snapshots.length){vis('Ingen snapshots','fejl');return}
+  const latestSnap=snapshots[snapshots.length-1];
+  if(!latestSnap.sensitivity||Object.keys(latestSnap.sensitivity).length===0){vis('Sensitivity missing','fejl');return}
+  if(!latestSnap.rawInputHash){vis('rawInputHash mangler','fejl');return}
+  if(!latestSnap.configFingerprint){vis('configFingerprint mangler','fejl');return}
+  const configFP=await computeConfigFingerprint();
+  const bundleAuditEntry={handling:'Bundle eksporteret',tidspunkt:new Date().toISOString(),schemaVersion:SCHEMA,ssiScore:sidsteSSI?.score,ofiScore:sidsteOFI?.score,emiScore:sidsteEMI?.score,configFingerprint:configFP};
+  const bundleHash=await computeAuditHash(latestSnap.latestHash,bundleAuditEntry);bundleAuditEntry.hash=bundleHash;
+  const p={type:'published_report_bundle',version:SCHEMA,schemaVersion:SCHEMA,createdAt:new Date().toISOString(),organisation:{id:ops.orgId,navn:ops.orgNavn},config:{kpiDefinitions:KPI_DEFINITIONS,ssiWeights:ops.ssiWeights||DEFAULT_SSI_WEIGHTS,ofiWeights:OFI_WEIGHTS,emiWeights:EMI_WEIGHTS,normalizationRules:NORMALIZATION_RULES,taerskler:hentTaerskler(),strategyTargets:STRATEGY_TARGETS,governanceConfig:GOVERNANCE_CONFIG},configFingerprint:configFP,senestSnapshot:snapshots[snapshots.length-1],alleSnapshots:snapshots,ssi:sidsteSSI,ofi:sidsteOFI,emi:sidsteEMI,rawInputHash:latestSnap.rawInputHash,latestHash:bundleHash,auditTrail:[bundleAuditEntry]};
+  await download('published_report_bundle.json',p);
+}
+async function eksporterMaster(){const configFP=await computeConfigFingerprint();const p={type:'consolidated_master',version:SCHEMA,schemaVersion:SCHEMA,createdAt:new Date().toISOString(),organisation:{id:ops.orgId,navn:ops.orgNavn},config:{kpiDefinitions:KPI_DEFINITIONS,ssiWeights:ops.ssiWeights||DEFAULT_SSI_WEIGHTS,ofiWeights:OFI_WEIGHTS,emiWeights:EMI_WEIGHTS,normalizationRules:NORMALIZATION_RULES,taerskler:hentTaerskler(),strategyTargets:STRATEGY_TARGETS},configFingerprint:configFP,indsendelser:indsendelser.map(i=>i.data),snapshots,sidsteKPI,sidsteSSI,sidsteOFI,sidsteEMI};await download('consolidated_master.json',p)}
+async function eksporterEvidence(){const configFP=await computeConfigFingerprint();const p={type:'evidence_pack',version:SCHEMA,schemaVersion:SCHEMA,createdAt:new Date().toISOString(),organisation:{id:ops.orgId,navn:ops.orgNavn},config:{kpiDefinitions:KPI_DEFINITIONS,ssiWeights:ops.ssiWeights||DEFAULT_SSI_WEIGHTS,ofiWeights:OFI_WEIGHTS,emiWeights:EMI_WEIGHTS,normalizationRules:NORMALIZATION_RULES,strategyTargets:STRATEGY_TARGETS},configFingerprint:configFP,metadata:indsendelser.map(i=>({filnavn:i.filnavn,importeret:i.importeret,indsendelsesId:i.data.indsendelsesId,indsender:i.data.indsender,periode:i.data.periode,migratedFrom:i.migratedFrom||null})),snapshots:snapshots.map(s=>({id:s.id,version:s.version,schemaVersion:s.schemaVersion,periode:s.periode,tidspunkt:s.tidspunkt,ssiScore:s.ssi?.score,ofiScore:s.ofi?.score,emiScore:s.emi?.score,sensitivity:s.sensitivity||null,configFingerprint:s.configFingerprint||null,latestHash:s.latestHash||null,auditTrail:s.auditTrail,calculationMeta:s.calculationMeta})),hashChainIntegrity:snapshots.every(s=>s.latestHash)?'VERIFIED':'PARTIAL',auditLog:[{handling:'Evidence pack eksporteret',tidspunkt:new Date().toISOString(),schemaVersion:SCHEMA,configFingerprint:configFP},...(sidsteSSI?[{handling:'SSI beregnet',tidspunkt:sidsteKPI?.beregnetTidspunkt,ssiScore:sidsteSSI.score,ofiScore:sidsteOFI?.score,emiScore:sidsteEMI?.score}]:[])]};await download('evidence_pack.json',p)}
+
+// v7.0: CEO OBSERVATORY SUMMARY (PRINT)
+function eksporterCEOPrint(){
+  if(!sidsteSSI||!sidsteKPI){vis('Beregn indeks forst','fejl');return}
+  const gov=sidsteKPI.governanceInsights||{};const anb=sidsteSSI.anbefalinger||[];const risks=sidsteKPI.top3Risici||[];const beslut=sidsteKPI.top3Beslutninger||[];
+  const ssiCol=sidsteSSI.score>=70?'#16a34a':sidsteSSI.score>=50?'#d97706':'#dc2626';
+  const ofiCol=sidsteOFI?.score>=70?'#16a34a':sidsteOFI?.score>=50?'#d97706':'#dc2626';
+  const emiCol=sidsteEMI?.score>=70?'#16a34a':sidsteEMI?.score>=50?'#d97706':'#dc2626';
+  const w=window.open('','Observatory Summary','width=800,height=1100');
+  w.document.write(`<!DOCTYPE html><html><head><title>Observatory Summary</title><style>*{margin:0;padding:0;box-sizing:border-box}body{font-family:'Georgia',serif;padding:36px;color:#1a1a2e;max-width:800px;margin:0 auto;font-size:13px;line-height:1.55}h1{font-size:22px;border-bottom:2px solid #1a1a2e;padding-bottom:8px;margin-bottom:16px}h2{font-size:13px;text-transform:uppercase;letter-spacing:.1em;color:#555;margin:16px 0 8px;border-bottom:1px solid #ddd;padding-bottom:4px}.trifecta{display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;margin:16px 0}.tri{text-align:center;border:2px solid #ddd;border-radius:10px;padding:16px}.tri-n{font-size:44px;font-weight:bold;line-height:1}.tri-l{font-size:10px;text-transform:uppercase;letter-spacing:.1em;color:#888;margin-bottom:4px}.tri-s{font-size:10px;color:#888;margin-top:4px}.item{padding:8px;border-left:3px solid #ccc;margin-bottom:6px;font-size:12px;line-height:1.5}.item.red{border-left-color:#dc2626}.item.orange{border-left-color:#d97706}.meta{font-size:10px;color:#888;margin-top:20px;border-top:1px solid #ddd;padding-top:8px}@media print{body{padding:20px}@page{margin:12mm}}</style></head><body>
+  <h1>${ops.orgNavn||'Organisation'} \u2014 Observatory Summary</h1>
+  <div style="text-align:center;color:#888;font-size:11px;margin-bottom:16px">Periode: ${snapshots.length?snapshots[snapshots.length-1].periode:'\u2014'} \u00b7 ${new Date().toISOString().slice(0,10)} \u00b7 Observatory v${SCHEMA}</div>
+  <div class="trifecta">
+    <div class="tri" style="border-color:${ssiCol}"><div class="tri-l">Strategy Execution Index</div><div class="tri-n" style="color:${ssiCol}">${sidsteSSI.score!=null?sidsteSSI.score:'\u2014'}</div><div class="tri-s">${sidsteSSI.score>=80?'Staerk':sidsteSSI.score>=60?'Acceptabel':'Kritisk'} \u00b7 ${sidsteSSI.coverage||'?'}</div></div>
+    <div class="tri" style="border-color:${ofiCol}"><div class="tri-l">Organizational Friction</div><div class="tri-n" style="color:${ofiCol}">${sidsteOFI?.score!=null?sidsteOFI.score:'\u2014'}</div><div class="tri-s">${sidsteOFI?.score>=70?'Lav friktion':sidsteOFI?.score>=50?'Moderat':'Hoj friktion'} \u00b7 ${sidsteOFI?.coverage||'?'}</div></div>
+    <div class="tri" style="border-color:${emiCol}"><div class="tri-l">Execution Momentum</div><div class="tri-n" style="color:${emiCol}">${sidsteEMI?.score!=null?sidsteEMI.score:'\u2014'}</div><div class="tri-s">${sidsteEMI?.score>=70?'Staerk':sidsteEMI?.score>=50?'Moderat':'Svagt'} \u00b7 ${sidsteEMI?.coverage||'?'}</div></div>
+  </div>
+  <div style="background:#f9f9f9;border-left:3px solid #C9A84C;padding:10px 14px;margin:16px 0;border-radius:0 6px 6px 0;font-size:11px;line-height:1.6"><strong>Execution Health = Momentum \u2212 Friktion.</strong> ${sidsteEMI?.score!=null&&sidsteOFI?.score!=null?(sidsteEMI.score>=70&&sidsteOFI.score>=70?'Balanceret tilstand. Fasthold rytmen.':sidsteEMI.score<50?'Momentum svagt \u2014 risiko for stagnation.':sidsteOFI.score<50?'Hoj friktion \u2014 bremser eksekvering.':'Moderat \u2014 monitorer.'):'Manglende data for fuld vurdering.'}</div>
+  <h2>Top 3 Risks</h2>${risks.map(r=>'<div class="item red"><strong>'+r.tekst+'</strong><br><span style="color:#888;font-size:11px">'+r.sub+'</span></div>').join('')||'<div class="item">Ingen kritiske risici</div>'}
+  <h2>Top 3 Decisions Required</h2>${beslut.map(b=>'<div class="item orange"><strong>'+b.tekst+'</strong><br><span style="color:#888;font-size:11px">'+b.sub+'</span></div>').join('')||'<div class="item">Ingen afventende beslutninger</div>'}
+  <h2>Anbefalinger</h2>${anb.map((a,i)=>'<div class="item"><strong>'+(i+1)+'.</strong> '+a+'</div>').join('')}
+  ${gov.behaviourRiskScore>0?'<h2>Governance Alerts</h2><div class="item '+(gov.behaviourRiskScore>50?'red':'orange')+'">Behaviour Risk: '+gov.behaviourRiskScore+'/100 \u2014 '+((gov.behaviourRiskFactors||[]).join('; ')||'Ingen')+'</div>':''}
+  ${gov.overloadedLeaders?.length?'<div class="item red">Leader overload: '+gov.overloadedLeaders.map(l=>l.leader+' ('+l.count+'/'+l.max+')').join(', ')+'</div>':''}
+  <div class="meta">Observatory v${SCHEMA} \u00b7 Tamper-evident \u00b7 Hash: ${snapshots.length?snapshots[snapshots.length-1].latestHash?.substring(0,16)+'\u2026':'N/A'}</div>
+  </body></html>`);
+  w.document.close();setTimeout(()=>w.print(),300);
+}
+
+async function download(filnavn,payload){
+  let t=JSON.stringify(payload,null,2);
+  if(gi('eks-krypt').checked){const k=v('eks-kode');if(k.length<8){vis('Adgangskode min. 8 tegn','fejl');return}try{t=JSON.stringify(await krypter(t,k),null,2)}catch(e){vis('Krypteringsfejl','fejl');return}}
+  const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([t],{type:'application/json'}));a.download=filnavn;document.body.appendChild(a);a.click();document.body.removeChild(a);vis('Eksporteret: '+filnavn,'ok');opdaterEksMeta();
+}
+
+// ── TESTDATA ────────────────────────────────────────────────
+function indlaesTestdata(){
+  const nu=new Date();const d=(o=0)=>{const x=new Date(nu);x.setDate(x.getDate()+o);return x.toISOString().split('T')[0]};
+  const periode={type:'maaned',label:'Maaned '+nu.toLocaleString('da-DK',{month:'long'})+' '+nu.getFullYear()};
+  const tf=[
+    {schemaVersion:SCHEMA,rolle:'data_leverandor',indsendelsesId:'INS-TEST-A1B2',indsender:{pseudonym:'Initiativleder Ryk1',rolle:'Ryk 1'},periode,beslutningsLog:[{id:'DEC-A001',datoRejst:d(-14),datoBesluttet:d(-2),datoLukket:d(-2),ansvarlig:'Programchef',frist:d(7),dod:'Beslutning dokumenteret og kommunikeret til alle teamledere inden fristdato',status:'Besluttet',pavirkning:'Hoj',relateretInitiativ:'1.2'},{id:'DEC-A002',datoRejst:d(-20),datoBesluttet:null,ansvarlig:'CTO',frist:d(-3),dod:'',status:'Afventer',pavirkning:'Hoj',relateretInitiativ:'1.1'},{id:'DEC-A003',datoRejst:d(-5),datoBesluttet:null,ansvarlig:'',frist:d(14),dod:'',status:'Afventer',pavirkning:'Mellem'}],friktionsLog:[{id:'FRI-A001',datoLogget:d(-35),status:'Aben',omraadeA:'Ryk 1',omraadeB:'IT-udvikling',problem:'Uafklaret ansvar for datamigreringsspecifikation blokerer testmiljo',impactScore:5,ansvarlig:'Programchef',nasteSteg:'Workshop planlagt',frist:d(5)},{id:'FRI-A002',datoLogget:d(-8),status:'I gang',omraadeA:'Ryk 1',omraadeB:'Compliance',problem:'Fortolkningsuenighed om GDPR-krav sinker implementering',impactScore:3,ansvarlig:'Juridisk chef',nasteSteg:'Ekstern radgiver',frist:d(21)}],risikoLog:[{id:'RSK-A001',datoLogget:d(-60),status:'Aben',risikoBeskrivelse:'Nogleudvikler forlader programmet — kritisk arkitekturviden tabt',tidligtSignal:'Nogleuv. naevner trivselsproblemer',mitigationsPlan:'1) Dokumenter arkitektur 2) Par-programmering 3) Backup-ressource',ansvarlig:'CTO',frist:d(30),sandsynlighed:3,pavirkning:5,relateretInitiativ:'1.2'}],initiativStatuser:{'1.1':'Active','1.2':'Active','1.3':'Paused','1.4':'Done'},eksekveringsSundhed:{teamConfidenceScore:3,competenceReadiness:3,blokeringerAntal:2,wipAntal:4,planlagtKapacitet:100,realistiskKapacitet:70,milestoneProgress:65}},
+    {schemaVersion:SCHEMA,rolle:'data_leverandor',indsendelsesId:'INS-TEST-C3D4',indsender:{pseudonym:'Driftskoordinator Ryk2',rolle:'Ryk 2'},periode,beslutningsLog:[{id:'DEC-B001',datoRejst:d(-7),datoBesluttet:d(-1),datoLukket:d(-1),ansvarlig:'Driftschef',frist:d(10),dod:'Ny supportproces implementeret og verificeret',status:'Besluttet',pavirkning:'Lav'}],friktionsLog:[{id:'FRI-B001',datoLogget:d(-12),status:'Aben',omraadeA:'Ryk 2',omraadeB:'HR',problem:'Rekrutteringsproces sinkes af interne godkendelsesled',impactScore:4,ansvarlig:'HR-direktaer',nasteSteg:'Escalation planlagt',frist:d(14)}],risikoLog:[{id:'RSK-B001',datoLogget:d(-10),status:'Aben',risikoBeskrivelse:'Leverandoerforsinkelse pa system Y kan blokere go-live Ryk 2',tidligtSignal:'Leverandor misser ugentlig status',mitigationsPlan:'1) Alternativ leverandor 2) Ugentligt statusmode',ansvarlig:'Indkobschef',frist:d(8),sandsynlighed:4,pavirkning:4,relateretInitiativ:'2.1'}],initiativStatuser:{'2.1':'Active','2.2':'Active','2.3':'Done','2.4':'Active'},eksekveringsSundhed:{teamConfidenceScore:4,competenceReadiness:4,blokeringerAntal:1,wipAntal:6,planlagtKapacitet:100,realistiskKapacitet:90,milestoneProgress:80}},
+    {schemaVersion:SCHEMA,rolle:'data_leverandor',indsendelsesId:'INS-TEST-E5F6',indsender:{pseudonym:'Forandringsleder Ryk3',rolle:'Ryk 3'},periode,beslutningsLog:[],friktionsLog:[{id:'FRI-C001',datoLogget:d(-5),status:'Aben',omraadeA:'Ryk 3',omraadeB:'Ryk 1',problem:'Manglende alignment pa kommunikationsstrategiens timing',impactScore:4,ansvarlig:'Forandringschef',nasteSteg:'Bilateral mode',frist:d(5)}],risikoLog:[{id:'RSK-C001',datoLogget:d(-6),status:'Aben',risikoBeskrivelse:'Medarbejdermodstand mod ny procesmodel kan forsinke implementeringen',tidligtSignal:'Pulssurvey under 3.5',mitigationsPlan:'1) Tidlig inddragelse 2) Change champion network',ansvarlig:'HR-direktaer',frist:d(7),sandsynlighed:3,pavirkning:4,relateretInitiativ:'3.1'}],initiativStatuser:{'3.1':'Active','3.2':'Stopped','3.3':'Paused','3.4':'Active'},eksekveringsSundhed:{teamConfidenceScore:2,competenceReadiness:2,blokeringerAntal:3,wipAntal:7,planlagtKapacitet:100,realistiskKapacitet:70,milestoneProgress:40}},
+  ];
+  tf.forEach(d=>{const obj={data:d,filnavn:'test_'+d.indsender.pseudonym.replace(/\s+/g,'_')+'.json',importeret:new Date().toISOString()};const eks=indsendelser.findIndex(i=>i.data.indsendelsesId===d.indsendelsesId);if(eks>=0)indsendelser[eks]=obj;else indsendelser.push(obj)});
+  gengiverFilerListe();gengiverMaster();opdaterSidebar();gemState();vis('3 testfiler indlaest (v'+SCHEMA+')','ok');
+}
+
+function indlaesTestdata3mdr(){
+  if(!confirm('Generer 3 maaneders testdata med 11 initiativer?'))return;
+  const nu=new Date();const d=(o=0)=>{const x=new Date(nu);x.setDate(x.getDate()+o);return x.toISOString().split('T')[0]};
+  const months=['M-2','M-1','M0'];const initIds=['1.1','1.2','1.3','2.1','2.2','2.3','3.1','3.2','3.3','4.1','4.2'];
+  for(let m=0;m<3;m++){const mOff=-60+m*30;for(let r=0;r<3;r++){const rykId=r+1;const tcBase=2.5+m*0.5+Math.random();const capBase=60+m*8+Math.random()*10;const msBase=40+m*15+Math.random()*10;
+    const data={schemaVersion:SCHEMA,rolle:'data_leverandor',indsendelsesId:'INS-3M-'+months[m]+'-R'+rykId,createdAt:new Date(nu.getTime()+mOff*86400000).toISOString(),indsender:{pseudonym:'Leder Ryk'+rykId+' '+months[m],rolle:'Ryk '+rykId},periode:{type:'maaned',label:months[m]+' '+nu.getFullYear()},beslutningsLog:[{id:'D3M-'+m+'-'+r+'-1',datoRejst:d(mOff-10),datoBesluttet:Math.random()>.3?d(mOff+Math.floor(Math.random()*12)):null,ansvarlig:'Chef-'+rykId,frist:d(mOff+14),dod:'Beslutning '+months[m],status:Math.random()>.4?'Besluttet':'Afventer',pavirkning:['Hoj','Mellem','Lav'][Math.floor(Math.random()*3)]},{id:'D3M-'+m+'-'+r+'-2',datoRejst:d(mOff-5),datoBesluttet:Math.random()>.5?d(mOff+Math.floor(Math.random()*8)):null,ansvarlig:'Dir-'+rykId,frist:d(mOff+7),dod:'Beslutning 2',status:Math.random()>.3?'Besluttet':'Eskaleret',pavirkning:'Mellem'}],friktionsLog:[{id:'F3M-'+m+'-'+r,datoLogget:d(mOff-8),status:Math.random()>.4?'Aben':'Lukket',omraadeA:'Ryk '+rykId,omraadeB:'IT',problem:'Friktion '+months[m]+' R'+rykId,impactScore:2+Math.floor(Math.random()*4),ansvarlig:'Koord-'+rykId,nasteSteg:'Opfolgning',frist:d(mOff+21)}],risikoLog:[{id:'R3M-'+m+'-'+r,datoLogget:d(mOff-12),status:'Aben',risikoBeskrivelse:'Risiko '+months[m]+' R'+rykId,sandsynlighed:1+Math.floor(Math.random()*4),pavirkning:2+Math.floor(Math.random()*4),ansvarlig:'Risk-'+rykId,frist:d(mOff+30)}],initiativStatuser:Object.fromEntries(initIds.slice(r*4,r*4+4).map(id=>[id,['Active','Active','Paused','Done'][Math.floor(Math.random()*4)]])),strategyLinks:Object.fromEntries(initIds.slice(r*4,r*4+4).map(id=>[id,STRATEGY_TARGETS[Math.floor(Math.random()*STRATEGY_TARGETS.length)].id])),eksekveringsSundhed:{teamConfidenceScore:Math.min(5,Math.max(1,Math.round(tcBase*10)/10)),competenceReadiness:Math.min(5,Math.max(1,Math.round((tcBase-0.3)*10)/10)),blokeringerAntal:Math.max(0,3-m+Math.floor(Math.random()*2)),wipAntal:3+Math.floor(Math.random()*5),planlagtKapacitet:100,realistiskKapacitet:Math.min(110,Math.max(50,Math.round(capBase))),milestoneProgress:Math.min(100,Math.max(0,Math.round(msBase)))}};
+    indsendelser.push({data,filnavn:'3mdr_'+months[m]+'_ryk'+rykId+'.json',importeret:new Date().toISOString()})}}
+  gengiverFilerListe();gengiverMaster();opdaterSidebar();gemState();vis('9 indsendelser genereret','ok');
+}
+
+function performanceTest(){
+  if(!confirm('Generer 300 dummy-initiativer?'))return;
+  const nu=new Date();const d=(o=0)=>{const x=new Date(nu);x.setDate(x.getDate()+o);return x.toISOString().split('T')[0]};
+  for(let i=0;i<300;i++){const idx=i+1;const data={schemaVersion:SCHEMA,rolle:'data_leverandor',indsendelsesId:'INS-PERF-'+String(idx).padStart(4,'0'),createdAt:new Date().toISOString(),indsender:{pseudonym:'PerfTest-'+idx,rolle:'Afd '+(1+i%12)},periode:{type:'maaned',label:'Perf '+idx},beslutningsLog:[{id:'DEC-P'+idx,datoRejst:d(-Math.floor(Math.random()*30)-1),datoBesluttet:Math.random()>.3?d(-Math.floor(Math.random()*5)):null,ansvarlig:'Leder-'+idx,frist:d(7),dod:'Test beslutning '+idx,status:['Besluttet','Afventer','Eskaleret'][Math.floor(Math.random()*3)],pavirkning:['Hoj','Mellem','Lav'][Math.floor(Math.random()*3)]}],friktionsLog:Math.random()>.5?[{id:'FRI-P'+idx,datoLogget:d(-10),status:['Aben','I gang','Lukket'][Math.floor(Math.random()*3)],omraadeA:'Afd-'+(1+i%6),omraadeB:'Afd-'+(7+i%6),problem:'Performance test friktion '+idx,impactScore:1+Math.floor(Math.random()*5),ansvarlig:'Test-'+idx,nasteSteg:'Test',frist:d(14)}]:[],risikoLog:Math.random()>.6?[{id:'RSK-P'+idx,datoLogget:d(-15),status:['Aben','Lukket','Accepteret'][Math.floor(Math.random()*3)],risikoBeskrivelse:'Performance test risiko '+idx,sandsynlighed:1+Math.floor(Math.random()*5),pavirkning:1+Math.floor(Math.random()*5),ansvarlig:'Test-'+idx,frist:d(21)}]:[],initiativStatuser:{},strategyLinks:{},eksekveringsSundhed:{teamConfidenceScore:1+Math.floor(Math.random()*5),competenceReadiness:1+Math.floor(Math.random()*5),blokeringerAntal:Math.floor(Math.random()*4),wipAntal:2+Math.floor(Math.random()*8),planlagtKapacitet:100,realistiskKapacitet:50+Math.floor(Math.random()*60),milestoneProgress:20+Math.floor(Math.random()*80)}};
+    indsendelser.push({data,filnavn:'perf_test_'+idx+'.json',importeret:new Date().toISOString()})}
+  gengiverFilerListe();gengiverMaster();opdaterSidebar();gemState();vis('300 performance test-initiativer genereret','ok');
+}
+
+// ── UTILS ───────────────────────────────────────────────────
+function opdaterSidebar(){const alle=allePoster();gi('sf-ind').textContent=indsendelser.length;gi('sf-post').textContent=alle.b.length+alle.f.length+alle.r.length;gi('sf-snap').textContent=snapshots.length;gi('badge-import').textContent=indsendelser.length;gi('badge-snapshots').textContent=snapshots.length}
+
+function rydAlt(fraOps=false){
+  const msg=fraOps?'Slet ALLE indsendelser og snapshots?':'Ryd alle importerede filer?';if(!confirm(msg))return;
+  indsendelser=[];if(fraOps)snapshots=[];
+  localStorage.removeItem(LS_I);if(fraOps)localStorage.removeItem(LS_S);
+  ['v62','v61','v60','v51','v4','v3'].forEach(fk=>{localStorage.removeItem('egf_adm_inds_'+fk);if(fraOps)localStorage.removeItem('egf_adm_snaps_'+fk)});
+  gengiverFilerListe();gengiverMaster();opdaterSidebar();gengiverSnapPills();
+  gi('kpi-grid').innerHTML='<div class="tom-tilstand" style="grid-column:1/-1;padding:36px">Klik "Beregn alle indeks"</div>';
+  gi('ssi-hero').style.display='none';gi('explain-ssi-section').style.display='none';
+  sidsteKPI=null;sidsteSSI=null;sidsteOFI=null;sidsteEMI=null;gemState();vis('Data ryddet','info');
+}
+
+// ── KRYPTERING ──────────────────────────────────────────────
+async function aflecNoegle(kode,salt){const m=await crypto.subtle.importKey('raw',new TextEncoder().encode(kode),'PBKDF2',false,['deriveKey']);return crypto.subtle.deriveKey({name:'PBKDF2',salt,iterations:100000,hash:'SHA-256'},m,{name:'AES-GCM',length:256},false,['encrypt','decrypt'])}
+async function krypter(json,kode){const salt=crypto.getRandomValues(new Uint8Array(16)),iv=crypto.getRandomValues(new Uint8Array(12));const n=await aflecNoegle(kode,salt);const e=await crypto.subtle.encrypt({name:'AES-GCM',iv},n,new TextEncoder().encode(json));return{__krypteret:true,version:'1.0',salt:Array.from(salt),iv:Array.from(iv),data:Array.from(new Uint8Array(e))}}
+async function dekrypter(p,kode){const n=await aflecNoegle(kode,new Uint8Array(p.salt));const d=await crypto.subtle.decrypt({name:'AES-GCM',iv:new Uint8Array(p.iv)},n,new Uint8Array(p.data));return new TextDecoder().decode(d)}
+
+// ── NOTIFIKATION ────────────────────────────────────────────
+let _nT;function vis(txt,type='info'){const el=gi('notif');el.textContent=txt;el.className='notif vis notif-'+type;clearTimeout(_nT);_nT=setTimeout(()=>el.classList.remove('vis'),3500)}
+
+// ── HELPERS ─────────────────────────────────────────────────
+function gi(id){return document.getElementById(id)}
+function v(id){return gi(id)?.value||''}
+function sv(id,val){const el=gi(id);if(el)el.value=val}
+</script>
+
+</body>
+</html>
